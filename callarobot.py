@@ -1,0 +1,124 @@
+#!/usr/bin/env python
+
+import webnsock
+import web
+from signal import signal, SIGINT
+from os import path
+from logging import error, warn, info, debug, basicConfig, INFO
+
+basicConfig(level=INFO)
+
+
+class CARState:
+
+    def __init__(self):
+        self.states = {}
+
+    def get_state(self, user):
+        if user not in self.states:
+            self.states[user] = 'INIT'
+        return self.states[user]
+
+    def set_state(self, user, state):
+        self.states[user] = state
+
+car_states = CARState()
+
+
+class CARWebServer(webnsock.WebServer):
+
+    def get_text(self, text):
+        return text
+
+    def __init__(self):
+
+        self.car_states = car_states
+
+        params = {
+            'n_users': 16,
+            'users': ["user_" + str(i) for i in range(1, 16)]
+        }
+
+        webnsock.WebServer.__init__(
+            self,
+            path.join(
+                path.dirname(__file__),
+                'www/static'
+            ),
+            '/car/'
+        )
+
+        self._renderer = web.template.render(
+            path.realpath(
+                path.join(
+                    path.dirname(__file__),
+                    'www'
+                )
+            ),
+            base='base', globals=globals())
+
+        self_app = self
+
+        class Index(self.page):
+            path = '/car/'
+
+            def GET(self):
+                return self_app._renderer.index(params, self_app.get_text)
+
+        class Orders(self.page):
+            path = '/car/orders'
+
+            def GET(self):
+                return self_app._renderer.orders(params, self_app.get_text)
+
+
+class CARProtocol(webnsock.JsonWSProtocol):
+
+    def __init__(self):
+        super(CARProtocol, self).__init__()
+        self.car_states = car_states
+
+    def onOpen(self):
+        info('websocket opened')
+
+    def send_updated_states(self):
+        self.sendJSON({
+            'method': 'update_orders',
+            'states': self.car_states.states
+        })
+
+    def update_state(self, user, state):
+        self.car_states.set_state(user, state)
+        self.send_updated_states()
+
+    def on_ping(self, payload):
+        return {'result': True}
+
+    def on_call(self, payload):
+        info('user %s called a robot' % payload['user'])
+        self.update_state(payload['user'], 'CALLED')
+
+    def on_cancel(self, payload):
+        info('user %s cancelled a robot' % payload['user'])
+        self.update_state(payload['user'], 'INIT')
+
+    def on_get_state(self, payload):
+        info('user %s requested state' % payload['user'])
+        return {
+            'method': 'set_state',
+            'state': self.car_states.get_state(payload['user'])
+        }
+
+
+
+def main():
+    webserver = webnsock.WebserverThread(CARWebServer())
+    backend = webnsock.WSBackend(CARProtocol)
+    signal(SIGINT,
+           lambda s, f: webnsock.signal_handler(webserver, backend, s, f))
+    webserver.start()
+    backend.talker()
+
+
+if __name__ == "__main__":
+    main()

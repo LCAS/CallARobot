@@ -1,0 +1,189 @@
+$def with (params, text)
+$var title: CallARobot
+$var jsfiles: 
+$var params: $:params
+
+
+
+
+<script>
+
+    function leave_state(s) {
+        $$('#call_btn').removeAttr('onclick');
+        $$('#call_btn').prop('disabled', true);
+        $$('#call_btn').html("");
+        $$('#call_btn').removeClass('btn-success btn-danger btn-default btn-primary');
+        switch(s) {
+            case 'CALLED':
+            case 'INIT':
+            default:
+                break;
+        }
+
+    }
+
+    function enter_state(s) {
+        $$('#call_btn').prop('disabled', false);
+        switch(s) {
+            case 'CALLED':
+                $$('#call_btn').html("$:text('Robot is called.<br/> Click to cancel')");
+                $$('#call_btn').attr(
+                    'onClick',
+                    "send({'method':'cancel', 'user': user});"
+                );
+                $$('#call_btn').addClass('btn-success');
+                break;
+            case 'INIT':
+            default:
+                $$('#call_btn').html("$text('Call a robot')");
+                $$('#call_btn').attr(
+                    'onClick',
+                    "send({'method':'call', 'user': user});"
+                );
+                $$('#call_btn').addClass('btn-primary');
+        }
+
+    }
+
+    function transition(new_state) {
+        if (new_state != state) {
+            console.log('old state: ' + state);
+            leave_state(state);
+            state = new_state;
+            enter_state(state);        
+            console.log('new state: ' + state);
+        } else {
+            console.log('staying in state: ' + state)
+        }
+    }
+
+    function _update_orders(data) {
+        var states = data['states'];
+        for(var key in states) {
+            if (key == user) {
+                transition(states[key]);
+            }
+        }
+    }
+
+    function _set_state(s) {
+        transition(s['state']);
+    }
+
+    function query_state(u){
+        send({
+            'method':'get_state', 
+            'user': user,
+        });
+    }
+
+    document.onready = function() {
+        webnsock_init();
+        socket.onopen = function () {
+          console.log("Connected!");
+          query_state(user);
+        };
+    }
+
+    state = '';
+    user = params['users'][0];
+
+
+
+
+</script>
+<div class="section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div  class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">$text('Main panel')</h3>
+                    </div>
+                    
+                    <div class="panel-body">
+                                <div class="btn-group2" role="group">
+                                        <button style="font-size: 40pt; min-height: 300px;"
+                                                id="call_btn" 
+                                                onclick="send({
+                                                    'method':'call', 
+                                                    'user': user,
+                                                });" 
+                                                class="btn btn-block btn-lg">$text('call a robot')</button>
+                                </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Robot Status</h3>
+                    </div>
+                    <div class="panel-body">
+                        <table class="table table-condensed table-striped">
+                            <tbody>
+                                <tr>
+                                    <td class="col-md-3">$text('Assigned')</td>
+                                    <td class="col-md-9"><p id="assigned_robot"></p></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+<!--             <div class="col-md-4">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Plans</h3>
+                    </div>
+                    <div class="panel-body">
+                            $for p in params['users']:
+                                <div class="btn-group" role="group">
+                                        <button id="$p" 
+                                                onclick="send({
+                                                    'method':'plan_start_button', 
+                                                    'plan': '$p',
+                                                });" 
+                                                class=" btn-lg btn-primary">$p</button><p>&nbsp;</p>
+                                </div>
+                        <p>&nbsp;</p>        
+                        <button id="$p" 
+                            onclick="send({
+                                'method':'plan_start_button', 
+                                'plan': 'stop',
+                            });" 
+                            class=" btn-lg btn-danger">STOP!</button>
+                    </div>
+                </div>
+            </div> -->
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modal_dlg">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">Notfall-Progamm aktivieren?</h4>
+      </div>
+      <div class="modal-body">
+        <p>Soll das Notfall-Programm aktiviert werden? Der Roboter wird zur naechsten Sicherheitszone fahren und sich dort abschalten. Sollte er dort im Weg sein, kann er einfach weg geschoben werden. Bitte informieren Sie nach der Aktivierung das Roboter-Admin Team, damit zu einem späteren Zeitpunkt der Betrieb wieder aufgenommen werden kann.</p>
+      </div>
+      <div class="modal-footer">
+        <button onclick="emergency_stop();" type="button" class="btn btn-danger btn-default" data-dismiss="modal">Notfall auslösen</button>
+        <button type="button" class="btn" data-dismiss="modal">Zurück zum Normalbetrieb</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
