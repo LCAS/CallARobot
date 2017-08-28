@@ -63,6 +63,19 @@ class CARWebServer(webnsock.WebServer):
 
         self_app = self
 
+        class AMZBtn(self.page):
+            path = '/car/button'
+
+            def POST(self):
+                user_data = web.input(username='')
+                info('pressed the button')
+                print user_data
+                user = user_data.username
+                if user is not '':
+                    info('user %s pressed the button')
+                    self_app.car_states.set_state('CALLED')
+                return web.ok()
+
         class Index(self.page):
             path = '/car/'
 
