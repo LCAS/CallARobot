@@ -42,39 +42,6 @@ $def with (page)
 
     </head>
     <body>
-        <div class="navbar navbar-default navbar-static-top">
-            <div class="container">
-                <div class="navbar-header">
-                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-ex-collapse">
-                        <span class="sr-only">Toggle navigation</span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                    </button>
-                    <a class="navbar-brand" style="padding: 2pt;" href="."><img height="40px" src="static/lcas_logo_100px.png" /></a>
-
-<!--                         <span style="color: #aa0000;" id="connection_broken" class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
-                        <span style="color: #00aa00;" id="connection_ok" class="hide glyphicon glyphicon-ok-circle" aria-hidden="true"></span> -->
-                    </a>
-                </div>
-
-                $def li(href, link_title):
-                    $ active=""
-                    $if page.title == link_title:
-                        $ active='class="active"'
-                    <li $:active><a href="$href">$link_title</a></li>
-
-                <div class="collapse navbar-collapse" id="navbar-ex-collapse">
-                    <ul class="nav navbar-nav navbar-right">
-                        $:li(".","Dashboard")
-                        $:li("spqrel","Team")
-                        $:li("blockly","Blockly")
-                    </ul>
-                    
-                </div>
-
-            </div>
-        </div>
 
         <!--<div class="section">
             <div class="container">

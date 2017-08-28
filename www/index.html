@@ -1,4 +1,4 @@
-$def with (params, text)
+$def with (params, text, user)
 $var title: CallARobot
 $var jsfiles: 
 $var params: $:params
@@ -12,8 +12,12 @@ $var params: $:params
         $$('#call_btn').removeAttr('onclick');
         $$('#call_btn').prop('disabled', true);
         $$('#call_btn').html("");
-        $$('#call_btn').removeClass('btn-success btn-danger btn-default btn-primary');
+        $$('#call_btn').removeClass('btn-success btn-danger btn-warning btn-default btn-primary');
         switch(s) {
+            case 'ACCEPTED':
+            case 'ARRIVED':
+            case 'LOADED':
+            case 'DELIVERED':
             case 'CALLED':
             case 'INIT':
             default:
@@ -25,14 +29,33 @@ $var params: $:params
     function enter_state(s) {
         $$('#call_btn').prop('disabled', false);
         switch(s) {
+            case 'ACCEPT':
+                $$('#call_btn').html("$:text('Robot is on its way.<br/> Click to cancel')");
+                $$('#call_btn').attr(
+                    'onClick',
+                    "send({'method':'cancel', 'user': user});"
+                );
+                break;
+            case 'ARRIVED':
+                $$('#call_btn').html("$:text('Robot is here.<br/>Load it and click here.')");
+                $$('#call_btn').attr(
+                    'onClick',
+                    "send({'method':'set_state', 'user': user, 'state': 'LOADED'});"
+                );
+                $$('#call_btn').addClass('btn-success');
+                break;
             case 'CALLED':
                 $$('#call_btn').html("$:text('Robot is called.<br/> Click to cancel')");
                 $$('#call_btn').attr(
                     'onClick',
                     "send({'method':'cancel', 'user': user});"
                 );
-                $$('#call_btn').addClass('btn-success');
+                $$('#call_btn').addClass('btn-warning');
                 break;
+            case 'LOADED':
+                $$('#call_btn').html("$:text('Robot will drive off.')");
+                break;
+            case 'DELIVERED':
             case 'INIT':
             default:
                 $$('#call_btn').html("$text('Call a robot')");
@@ -86,9 +109,7 @@ $var params: $:params
     }
 
     state = '';
-    user = params['users'][0];
-
-
+    user = '$user';
 
 
 </script>
@@ -98,7 +119,8 @@ $var params: $:params
             <div class="col-md-12">
                 <div  class="panel panel-primary">
                     <div class="panel-heading">
-                        <h3 class="panel-title">$text('Main panel')</h3>
+                    <form action="#" method="post">
+                        <h3 class="panel-title">User: $user  <button class="btn" type="submit">logout</button></h3></form>
                     </div>
                     
                     <div class="panel-body">
@@ -118,7 +140,7 @@ $var params: $:params
     </div>
 </div>
 
-
+<!-- 
 <div class="section">
     <div class="container">
         <div class="row">
@@ -140,31 +162,6 @@ $var params: $:params
                 </div>
             </div>
 
-<!--             <div class="col-md-4">
-                <div class="panel panel-primary">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">Plans</h3>
-                    </div>
-                    <div class="panel-body">
-                            $for p in params['users']:
-                                <div class="btn-group" role="group">
-                                        <button id="$p" 
-                                                onclick="send({
-                                                    'method':'plan_start_button', 
-                                                    'plan': '$p',
-                                                });" 
-                                                class=" btn-lg btn-primary">$p</button><p>&nbsp;</p>
-                                </div>
-                        <p>&nbsp;</p>        
-                        <button id="$p" 
-                            onclick="send({
-                                'method':'plan_start_button', 
-                                'plan': 'stop',
-                            });" 
-                            class=" btn-lg btn-danger">STOP!</button>
-                    </div>
-                </div>
-            </div> -->
         </div>
     </div>
 </div>
@@ -184,6 +181,7 @@ $var params: $:params
         <button onclick="emergency_stop();" type="button" class="btn btn-danger btn-default" data-dismiss="modal">Notfall auslösen</button>
         <button type="button" class="btn" data-dismiss="modal">Zurück zum Normalbetrieb</button>
       </div>
-    </div><!-- /.modal-content -->
-  </div><!-- /.modal-dialog -->
-</div><!-- /.modal -->
+    </div>
+  </div>
+</div>
+ -->

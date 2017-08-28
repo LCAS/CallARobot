@@ -1,0 +1,39 @@
+$def with (params, text)
+$var title: CallARobot
+$var jsfiles: 
+$var params: $:params
+
+
+
+
+<script>
+
+
+
+</script>
+
+<div class="section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div  class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">$text('Login')</h3>
+                    </div>
+                    
+                    <div class="panel-body">
+                    <form action="#" method="post" accept-charset="utf-8">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input pattern="^[a-zA-Z0-9]+$$" type="text" class="form-control" name="username" id="username" aria-describedby="emailHelp" placeholder="Enter username">
+                            <small id="emailHelp" class="form-text text-muted">enter a name without spaces.</small>
+                        </div>
+                        <button class="btn btn-block btn-success" type="submit">Login</button>
+
+                    </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

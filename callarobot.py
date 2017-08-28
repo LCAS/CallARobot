@@ -13,6 +13,10 @@ class CARState:
 
     def __init__(self):
         self.states = {}
+        self.managers = set([])
+        self.users = {}
+        for u in self.users:
+            self.set_state(u, 'INIT')
 
     def get_state(self, user):
         if user not in self.states:
@@ -34,9 +38,9 @@ class CARWebServer(webnsock.WebServer):
 
         self.car_states = car_states
 
-        params = {
-            'n_users': 16,
-            'users': ["user_" + str(i) for i in range(1, 16)]
+        self.params = {
+            'n_users': len(self.car_states.users),
+            'users': list(self.car_states.users)
         }
 
         webnsock.WebServer.__init__(
@@ -63,13 +67,38 @@ class CARWebServer(webnsock.WebServer):
             path = '/car/'
 
             def GET(self):
-                return self_app._renderer.index(params, self_app.get_text)
+                user = web.cookies().get('_car_user')
+                if user is None:
+                    return self_app._renderer.login(
+                        self_app.params, self_app.get_text)
+                else:
+                    self_app.car_states.users[user] = web.ctx
+                    self_app.params = {
+                        'n_users': len(self_app.car_states.users),
+                        'users': list(self_app.car_states.users)
+                    }
+
+                    print self_app.params
+                    return self_app._renderer.index(
+                        self_app.params, self_app.get_text, user)
+
+            def POST(self):
+                user_data = web.input(username='')
+
+                user = user_data.username
+                if user is not '':
+                    info('login as %s' % user_data)
+                    web.setcookie('_car_user', user)
+                else:
+                    web.setcookie('_car_user', '', -1)
+                return web.seeother('/car/')
 
         class Orders(self.page):
             path = '/car/orders'
 
             def GET(self):
-                return self_app._renderer.orders(params, self_app.get_text)
+                return self_app._renderer.orders(
+                    self_app.params, self_app.get_text)
 
 
 class CARProtocol(webnsock.JsonWSProtocol):
@@ -80,12 +109,37 @@ class CARProtocol(webnsock.JsonWSProtocol):
 
     def onOpen(self):
         info('websocket opened')
+        self.car_states.managers.add(self)
+
+    def onClose(self, wasClean, code, reason):
+        info("WebSocket connection closed: {0}".format(reason))
+        if self in self.car_states.managers:
+            info('unregistered')
+            self.car_states.managers.remove(self)
+
+    def on_set_state(self, payload):
+        info(
+            'update state for user %s: %s' %
+            (payload['user'], payload['state']))
+        self.update_state(payload['user'], payload['state'])
+
+    def on_register(self, payload):
+        info('registering management interface %s' % str(self))
+        self.car_states.managers.add(self)
+
+    def on_get_states(self, payload):
+        info('states requested')
+        self.send_updated_states()
 
     def send_updated_states(self):
-        self.sendJSON({
-            'method': 'update_orders',
-            'states': self.car_states.states
-        })
+        addressees = set([self])
+        addressees = addressees.union(self.car_states.managers)
+        for m in addressees:
+            info('send update to manager %s' % str(m))
+            m.sendJSON({
+                'method': 'update_orders',
+                'states': self.car_states.states
+            })
 
     def update_state(self, user, state):
         self.car_states.set_state(user, state)
