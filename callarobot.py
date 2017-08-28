@@ -72,8 +72,14 @@ class CARWebServer(webnsock.WebServer):
                 print user_data
                 user = user_data.username
                 if user is not '':
+                    self_app.car_states.users[user] = web.ctx
+                    self_app.params = {
+                        'n_users': len(self_app.car_states.users),
+                        'users': list(self_app.car_states.users)
+                    }
+
                     info('user %s pressed the button')
-                    self_app.car_states.set_state('CALLED')
+                    self_app.car_states.set_state(user, 'CALLED')
                 return web.ok()
 
         class Index(self.page):
