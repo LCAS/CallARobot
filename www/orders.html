@@ -27,6 +27,14 @@ $var params: $:params
         console.log(user+" "+id);
         $$(id).prop('disabled', false);
         switch(s) {
+            case 'BUTTON':
+                $$(id).html("$:text('Dash Button pressed. Accept!')");
+                $$(id).attr(
+                    'onClick',
+                    "send({'method':'set_state', state: 'ACCEPT','user': \""+user+"\"});"
+                );
+                $$(id).addClass('btn-success');
+                break;
             case 'CALLED':
                 $$(id).html("$:text('Accept')");
                 $$(id).attr(
@@ -44,7 +52,12 @@ $var params: $:params
                 $$(id).addClass('btn-warning');
                 break;
             case 'ARRIVED':
-                $$(id).html("$:text('Arrived at picker.')");                
+                $$(id).html("$:text('Arrived at picker. Click when loaded or wait.')");                
+                $$(id).attr(
+                    'onClick',
+                    "send({'method':'set_state', state: 'LOADED','user': \""+user+"\"});"
+                );
+                $$(id).addClass('btn-warning');
                 break;
             case 'LOADED':
                 $$(id).html("$:text('Loaded. Click and return robot')");

@@ -15,6 +15,7 @@ $var params: $:params
         $$('#call_btn').removeClass('btn-success btn-danger btn-warning btn-default btn-primary');
         switch(s) {
             case 'ACCEPTED':
+            case 'BUTTON':
             case 'ARRIVED':
             case 'LOADED':
             case 'DELIVERED':
@@ -44,6 +45,7 @@ $var params: $:params
                 );
                 $$('#call_btn').addClass('btn-success');
                 break;
+            case 'BUTTON':
             case 'CALLED':
                 $$('#call_btn').html("$:text('Robot is called.<br/> Click to cancel')");
                 $$('#call_btn').attr(

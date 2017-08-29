@@ -26,6 +26,20 @@ class CARState:
     def set_state(self, user, state):
         self.states[user] = state
 
+    def send_updated_states(self, extra_socket=None):
+        if extra_socket is None:
+            addressees = set([])
+        else:
+            addressees = set([extra_socket])
+        addressees = addressees.union(self.managers)
+        for m in addressees:
+            info('send update to manager %s' % str(m))
+            m.sendJSON({
+                'method': 'update_orders',
+                'states': self.states
+            })
+
+
 car_states = CARState()
 
 
@@ -79,7 +93,8 @@ class CARWebServer(webnsock.WebServer):
                     }
 
                     info('user %s pressed the button')
-                    self_app.car_states.set_state(user, 'CALLED')
+                    self_app.car_states.set_state(user, 'BUTTON')
+                    self_app.car_states.send_updated_states()
                 return web.ok()
 
         class Index(self.page):
@@ -151,14 +166,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
         self.send_updated_states()
 
     def send_updated_states(self):
-        addressees = set([self])
-        addressees = addressees.union(self.car_states.managers)
-        for m in addressees:
-            info('send update to manager %s' % str(m))
-            m.sendJSON({
-                'method': 'update_orders',
-                'states': self.car_states.states
-            })
+        self.car_states.send_updated_states(self)
 
     def update_state(self, user, state):
         self.car_states.set_state(user, state)
