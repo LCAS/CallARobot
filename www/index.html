@@ -131,8 +131,8 @@ $var params: $:params
 
                 loc_options = {
                   enableHighAccuracy: true,
-                  timeout: 3000,
-                  maximumAge: 0
+                  timeout: 5000,
+                  maximumAge: 30000
                 };
 
                 id = navigator.geolocation.watchPosition(loc_success, loc_error, loc_options);

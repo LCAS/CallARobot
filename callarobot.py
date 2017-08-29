@@ -9,6 +9,7 @@ from logging import error, warn, info, debug, basicConfig, INFO
 from csv import DictWriter
 from datetime import datetime
 from time import mktime
+from threading import Lock
 from collections import defaultdict
 
 basicConfig(level=INFO)
@@ -35,6 +36,8 @@ class CARState:
         )
         self.log_writer.writeheader()
         self.log_id = 0
+        self.log_lock = Lock()
+
         self.log_uid = defaultdict(int)
 
     def log(self, user, state='NONE', latitude=-1, longitude=-1):
@@ -59,8 +62,8 @@ class CARState:
 
         self.log_id += 1
         self.log_uid[user] += 1
-
-        self.log_writer.writerow(entry)
+        with self.log_lock:
+            self.log_writer.writerow(entry)
 
     def get_state(self, user):
         if user not in self.states:
