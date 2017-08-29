@@ -6,6 +6,11 @@ from signal import signal, SIGINT
 from os import path
 from logging import error, warn, info, debug, basicConfig, INFO
 
+from csv import DictWriter
+from datetime import datetime
+from time import mktime
+from collections import defaultdict
+
 basicConfig(level=INFO)
 
 
@@ -15,16 +20,56 @@ class CARState:
         self.states = {}
         self.managers = set([])
         self.users = {}
+        self.gps = defaultdict(dict)
+
         for u in self.users:
             self.set_state(u, 'INIT')
+        self.log_filename = \
+            'call-a-robot-' + datetime.now().strftime("%Y%m%d-%H%M%S") + '.csv'
+        self.csvfile = open(self.log_filename, 'w')
+        self.log_fieldnames = [
+            'id', 'timestamp', 'datetime', 'user', 'uid',
+            'state', 'latitude', 'longitude']
+        self.log_writer = DictWriter(
+            self.csvfile, fieldnames=self.log_fieldnames
+        )
+        self.log_writer.writeheader()
+        self.log_id = 0
+        self.log_uid = defaultdict(int)
+
+    def log(self, user, state='NONE', latitude=-1, longitude=-1):
+        dt = datetime.now()
+        ts = mktime(dt.timetuple())
+
+        if 'latitude' in self.gps[user]:
+            latitude = self.gps[user]['latitude']
+        if 'longitude' in self.gps[user]:
+            longitude = self.gps[user]['longitude']
+
+        entry = {
+            'id': self.log_id,
+            'timestamp': int(ts),
+            'datetime': dt.strftime("%Y%m%d-%H%M%S"),
+            'user': user,
+            'uid': self.log_uid[user],
+            'state': state,
+            'latitude': latitude,
+            'longitude': longitude
+        }
+
+        self.log_id += 1
+        self.log_uid[user] += 1
+
+        self.log_writer.writerow(entry)
 
     def get_state(self, user):
         if user not in self.states:
             self.states[user] = 'INIT'
         return self.states[user]
 
-    def set_state(self, user, state):
+    def set_state(self, user, state, latitude=-1, longitude=-1):
         self.states[user] = state
+        self.log(user, state, latitude, longitude)
 
     def send_updated_states(self, extra_socket=None):
         if extra_socket is None:
@@ -164,6 +209,19 @@ class CARProtocol(webnsock.JsonWSProtocol):
     def on_get_states(self, payload):
         info('states requested')
         self.send_updated_states()
+
+    def on_location_update(self, payload):
+        info('GPS update')
+        self.car_states.gps[payload['user']] = {
+            'latitude': payload['latitude'],
+            'longitude': payload['longitude']
+        }
+        self.car_states.log(
+            payload['user'],
+            state='GPS',
+            latitude=payload['latitude'],
+            longitude=payload['longitude']
+        )
 
     def send_updated_states(self):
         self.car_states.send_updated_states(self)

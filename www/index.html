@@ -105,17 +105,56 @@ $var params: $:params
     document.onready = function() {
         webnsock_init();
         socket.onopen = function () {
-          console.log("Connected!");
-          query_state(user);
+            console.log("Connected!");
+            query_state(user);
+
+            {
+                var id, loc_options;
+
+                function loc_success(pos) {
+                  var crd = pos.coords;
+
+                  latitude = crd.latitude;
+                  longitude = crd.longitude;
+                  console.log('new location: ' + latitude + ", " + longitude);
+                  send({
+                    'method':'location_update', 
+                    'user': user,
+                    'latitude': latitude,
+                    'longitude': longitude
+                  });                  
+                }
+
+                function loc_error(err) {
+                  console.warn('loc_ERROR(' + err.code + '): ' + err.message);
+                }
+
+                loc_options = {
+                  enableHighAccuracy: true,
+                  timeout: 3000,
+                  maximumAge: 0
+                };
+
+                id = navigator.geolocation.watchPosition(loc_success, loc_error, loc_options);
+            }
+
+
         };
     }
+
+    latitude = -1;
+    longitude = -1;
+
 
     state = '';
     user = '$user';
 
-    getLocation(function(lat, long) {
-        console.log(lat + " " + long);    
-    });
+
+
+
+    // getLocation(function(lat, long) {
+    //     console.log(lat + " " + long);    
+    // });
     
 
 </script>
