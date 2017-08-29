@@ -26,7 +26,7 @@ class CARState:
             self.set_state(u, 'INIT')
         self.log_filename = \
             'call-a-robot-' + datetime.now().strftime("%Y%m%d-%H%M%S") + '.csv'
-        self.csvfile = open(self.log_filename, 'w')
+        self.csvfile = open(self.log_filename, 'w', 0)
         self.log_fieldnames = [
             'id', 'timestamp', 'datetime', 'user', 'uid',
             'state', 'latitude', 'longitude']
