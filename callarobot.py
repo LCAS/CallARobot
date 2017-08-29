@@ -162,7 +162,7 @@ class CARWebServer(webnsock.WebServer):
                 user = web.cookies().get('_car_user')
                 if user is None:
                     return self_app._renderer.login(
-                        self_app.params, self_app.get_text)
+                        self_app.params, self_app.get_text, '/car/')
                 else:
                     self_app.car_states.users[user] = web.ctx
                     self_app.params = {
@@ -188,9 +188,25 @@ class CARWebServer(webnsock.WebServer):
         class Orders(self.page):
             path = '/car/orders'
 
+            def POST(self):
+                user_data = web.input(username='')
+
+                user = user_data.username
+                if user == 'lcas':
+                    info('admin login as %s' % user_data)
+                    web.setcookie('_car_admin', user)
+                else:
+                    web.setcookie('_car_admin', '', -1)
+                return web.seeother('/car/orders')
+
             def GET(self):
-                return self_app._renderer.orders(
-                    self_app.params, self_app.get_text)
+                user = web.cookies().get('_car_admin')
+                if user is None:
+                    return self_app._renderer.login(
+                        self_app.params, self_app.get_text, '/car/orders')
+                else:
+                    return self_app._renderer.orders(
+                        self_app.params, self_app.get_text)
 
 
 class CARProtocol(webnsock.JsonWSProtocol):
