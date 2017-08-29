@@ -4,9 +4,35 @@ $var jsfiles:
 $var params: $:params
 
 
-
+<style>
+   #map {
+    height: 400px;
+    width: 100%;
+   }
+</style>
 
 <script>
+
+    map_api_key='AIzaSyBZkAPjdGvZFIi6LKkFB3rIrLzNUSN4ZVE'
+
+    markers = {};
+
+    function initMap(lat, long) {
+        var center = {lat: lat, lng: long};
+        console.log(center);
+        map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 18,
+          center: center,
+          mapTypeId: 'satellite'
+        });
+        var marker = new google.maps.Marker({
+          position: center,
+          map: map,
+          label: "YOU"
+        });
+    }
+
+
     function leave_state(user, s) {
         var id = '#btn-' + user;
         $$(id).removeAttr('onclick');
@@ -85,6 +111,25 @@ $var params: $:params
         }
     }
 
+
+    function _update_position(data) {
+        var user = data['user'];
+        var lat = data['lat'];
+        var long = data['long'];
+        var pos = {lat: lat, lng: long};
+        if (markers[user] != undefined) {
+            markers[user].setMap(null);
+        }
+
+        markers[user] = new google.maps.Marker({
+          position: pos,
+          map: map,
+          label: user
+        });
+
+    }
+
+
     function _update_orders(data) {
         new_states = data['states'];
         console.log('update orders');
@@ -121,7 +166,17 @@ $var params: $:params
 
     states = {};
 
+    function locInit() {
+        getLocation(initMap);
+    }
+
 </script>
+
+<script 
+    async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBZkAPjdGvZFIi6LKkFB3rIrLzNUSN4ZVE&callback=locInit">
+</script>
+
 
 <div class="section">
     <div class="container">
@@ -184,23 +239,16 @@ $var params: $:params
 </div>
 
 
-<!-- <div class="section">
+<div class="section">
     <div class="container">
         <div class="row">
             <div class="col-md-12">
                 <div class="panel panel-primary">
                     <div class="panel-heading">
-                        <h3 class="panel-title">Robot Status</h3>
+                        <h3 class="panel-title">Map</h3>
                     </div>
                     <div class="panel-body">
-                        <table class="table table-condensed table-striped">
-                            <tbody>
-                                <tr>
-                                    <td class="col-md-3">$text('Assigned')</td>
-                                    <td class="col-md-9"><p id="assigned_robot"></p></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div id="map"></div>
                     </div>
                 </div>
             </div>
@@ -208,4 +256,4 @@ $var params: $:params
         </div>
     </div>
 </div>
- -->
+

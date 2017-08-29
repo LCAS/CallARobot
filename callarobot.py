@@ -87,6 +87,16 @@ class CARState:
                 'states': self.states
             })
 
+    def send_update_position(self, user, lat, long):
+        for m in self.managers:
+            info('send pos update  %s' % str(m))
+            m.sendJSON({
+                'method': 'update_position',
+                'user': user,
+                'lat': lat,
+                'long': long
+            })
+
 
 car_states = CARState()
 
@@ -225,6 +235,10 @@ class CARProtocol(webnsock.JsonWSProtocol):
             latitude=payload['latitude'],
             longitude=payload['longitude']
         )
+        self.car_states.send_update_position(
+            payload['user'],
+            payload['latitude'],
+            payload['longitude'])
 
     def send_updated_states(self):
         self.car_states.send_updated_states(self)
