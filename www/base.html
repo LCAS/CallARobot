@@ -38,6 +38,43 @@ $def with (page)
 
             params = $:page.params;
 
+            function getLocation(cb) {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        function(position) {
+                            latitude = position.coords.latitude;
+                            longitude = position.coords.longitude;
+                            console.log(position);
+                            cb(latitude, longitude);
+                        },
+                        function(error) {
+                            switch(error.code) {
+                                case error.PERMISSION_DENIED:
+                                    console.log("User denied the request for Geolocation.");
+                                    break;
+                                case error.POSITION_UNAVAILABLE:
+                                    console.log("Location information is unavailable.");
+                                    break;
+                                case error.TIMEOUT:
+                                    console.log("The request to get user location timed out.");
+                                    break;
+                                case error.UNKNOWN_ERROR:
+                                    console.log("An unknown error occurred.");
+                                    break;
+                            }
+                            $$.getJSON("https://freegeoip.net/json/", function(res){
+                                console.log("estimated from freegeoip " + res.latitude + " " + res.longitude);
+                                latitude = res.latitude;
+                                longitude = res.longitude;
+                                cb(latitude, longitude);
+                            });
+                        });
+                } else {
+                    console.log("Geolocation is not supported by this browser.");
+                }
+            }
+
+
         </script>
 
     </head>

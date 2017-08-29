@@ -113,6 +113,10 @@ $var params: $:params
     state = '';
     user = '$user';
 
+    getLocation(function(lat, long) {
+        console.log(lat + " " + long);    
+    });
+    
 
 </script>
 <div class="section">
