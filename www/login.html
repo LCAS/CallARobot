@@ -1,4 +1,4 @@
-$def with (params, text)
+$def with (params, text, url)
 $var title: CallARobot
 $var jsfiles: 
 $var params: $:params
@@ -22,7 +22,7 @@ $var params: $:params
                     </div>
                     
                     <div class="panel-body">
-                    <form action="#" method="post" accept-charset="utf-8">
+                    <form action="$url" method="post" accept-charset="utf-8">
                         <div class="form-group">
                             <label for="username">Username</label>
                             <input pattern="^[a-zA-Z0-9]+$$" type="text" class="form-control" name="username" id="username" aria-describedby="emailHelp" placeholder="Enter username">
