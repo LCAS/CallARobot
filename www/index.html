@@ -103,7 +103,7 @@ $var params: $:params
     }
 
     document.onready = function() {
-        webnsock_init();
+        webnsock_init('wss://lcas.lincoln.ac.uk/car/ws');
         socket.onopen = function () {
             console.log("Connected!");
             query_state(user);
