@@ -129,7 +129,7 @@ class CARWebServer(webnsock.WebServer):
                 user_data = web.input(username='')
                 info('pressed the button')
                 print user_data
-                user = user_data.username
+                user = str(user_data.username)
                 if user is not '':
                     self_app.car_states.users[user] = web.ctx
                     self_app.params = {
