@@ -105,11 +105,23 @@ $var params: $:params
     function _update_position(data) {
     }
 
+    function register() {
+        send({
+            'method':'register',
+            'admin': false,
+            'user': '$user'
+        });
+        console.log("registered!");
+    }
+
+
+
 
     document.onready = function() {
         webnsock_init('wss://lcas.lincoln.ac.uk/car/ws');
         socket.onopen = function () {
             console.log("Connected!");
+            register();
             query_state(user);
 
             {

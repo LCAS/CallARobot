@@ -19,7 +19,8 @@ class CARState:
 
     def __init__(self):
         self.states = {}
-        self.managers = set([])
+        self.clients = set([])
+        self.admin_clients = set([])
         self.users = {}
         self.gps = defaultdict(dict)
 
@@ -29,7 +30,7 @@ class CARState:
             'call-a-robot-' + datetime.now().strftime("%Y%m%d-%H%M%S") + '.csv'
         self.csvfile = open(self.log_filename, 'w', 0)
         self.log_fieldnames = [
-            'id', 'timestamp', 'datetime', 'user', 'uid',
+            'id', 'timestamp', 'datetime', 'user', 'log_user', 'uid',
             'state', 'latitude', 'longitude']
         self.log_writer = DictWriter(
             self.csvfile, fieldnames=self.log_fieldnames
@@ -40,7 +41,7 @@ class CARState:
 
         self.log_uid = defaultdict(int)
 
-    def log(self, user, state='NONE', latitude=-1, longitude=-1):
+    def log(self, user, state='NONE', log_user="", latitude=-1, longitude=-1):
         dt = datetime.now()
         ts = mktime(dt.timetuple())
 
@@ -54,32 +55,47 @@ class CARState:
             'timestamp': int(ts),
             'datetime': dt.strftime("%Y%m%d-%H%M%S"),
             'user': user,
+            'log_user': log_user,
             'uid': self.log_uid[user],
             'state': state,
             'latitude': latitude,
             'longitude': longitude
         }
 
-        self.log_id += 1
-        self.log_uid[user] += 1
         with self.log_lock:
             self.log_writer.writerow(entry)
+        for a in self.admin_clients:
+            a.sendJSON({
+                'method': 'add_log',
+                'id': self.log_id,
+                'timestamp': int(ts),
+                'datetime': dt.strftime("%Y%m%d-%H%M%S"),
+                'user': user,
+                'log_user': log_user,
+                'uid': self.log_uid[user],
+                'state': state,
+                'latitude': latitude,
+                'longitude': longitude
+            })
+        self.log_id += 1
+        if state == 'INIT' or state == 'INIT':
+            self.log_uid[user] += 1
 
     def get_state(self, user):
         if user not in self.states:
             self.states[user] = 'INIT'
         return self.states[user]
 
-    def set_state(self, user, state, latitude=-1, longitude=-1):
+    def set_state(self, user, state, log_user, latitude=-1, longitude=-1):
         self.states[user] = state
-        self.log(user, state, latitude, longitude)
+        self.log(user, state, log_user, latitude, longitude)
 
     def send_updated_states(self, extra_socket=None):
         if extra_socket is None:
             addressees = set([])
         else:
             addressees = set([extra_socket])
-        addressees = addressees.union(self.managers)
+        addressees = addressees.union(self.clients)
         for m in addressees:
             info('send update to manager %s' % str(m))
             m.sendJSON({
@@ -88,7 +104,7 @@ class CARState:
             })
 
     def send_update_position(self, user, lat, long):
-        for m in self.managers:
+        for m in self.admin_clients:
             info('send pos update  %s' % str(m))
             m.sendJSON({
                 'method': 'update_position',
@@ -141,7 +157,6 @@ class CARWebServer(webnsock.WebServer):
             def POST(self):
                 user_data = web.input(username='')
                 info('pressed the button')
-                print user_data
                 user = str(user_data.username)
                 if user is not '':
                     self_app.car_states.users[user] = web.ctx
@@ -154,6 +169,16 @@ class CARWebServer(webnsock.WebServer):
                     self_app.car_states.set_state(user, 'BUTTON')
                     self_app.car_states.send_updated_states()
                 return web.ok()
+
+        class Download(self.page):
+            path = '/car/log'
+
+            def GET(self):
+                web.header(
+                    'Content-Disposition', 'attachment; filename="car.log"')
+                web.header('Content-type', 'images/jpeg')
+                web.header('Content-transfer-encoding', 'binary')
+                return open(self_app.car_states.log_filename, 'rb').read()
 
         class Index(self.page):
             path = '/car/'
@@ -170,7 +195,6 @@ class CARWebServer(webnsock.WebServer):
                         'users': list(self_app.car_states.users)
                     }
 
-                    print self_app.params
                     return self_app._renderer.index(
                         self_app.params, self_app.get_text, user)
 
@@ -214,16 +238,17 @@ class CARProtocol(webnsock.JsonWSProtocol):
     def __init__(self):
         super(CARProtocol, self).__init__()
         self.car_states = car_states
+        self.log_user = 'unknown'
 
     def onOpen(self):
         info('websocket opened')
-        self.car_states.managers.add(self)
+        self.car_states.clients.add(self)
 
     def onClose(self, wasClean, code, reason):
         info("WebSocket connection closed: {0}".format(reason))
-        if self in self.car_states.managers:
+        if self in self.car_states.clients:
             info('unregistered')
-            self.car_states.managers.remove(self)
+            self.car_states.clients.remove(self)
 
     def on_set_state(self, payload):
         info(
@@ -233,7 +258,9 @@ class CARProtocol(webnsock.JsonWSProtocol):
 
     def on_register(self, payload):
         info('registering management interface %s' % str(self))
-        self.car_states.managers.add(self)
+        if payload['admin']:
+            self.car_states.admin_clients.add(self)
+        self.log_user = payload['user']
 
     def on_get_states(self, payload):
         info('states requested')
@@ -260,7 +287,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
         self.car_states.send_updated_states(self)
 
     def update_state(self, user, state):
-        self.car_states.set_state(user, state)
+        self.car_states.set_state(user, state, self.log_user)
         self.send_updated_states()
 
     def on_ping(self, payload):
