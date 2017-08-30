@@ -64,19 +64,20 @@ class CARState:
 
         with self.log_lock:
             self.log_writer.writerow(entry)
-        for a in self.admin_clients:
-            a.sendJSON({
-                'method': 'add_log',
-                'id': self.log_id,
-                'timestamp': int(ts),
-                'datetime': dt.strftime("%Y%m%d-%H%M%S"),
-                'user': user,
-                'log_user': log_user,
-                'uid': self.log_uid[user],
-                'state': state,
-                'latitude': latitude,
-                'longitude': longitude
-            })
+        if state is not 'GPS':
+            for a in self.admin_clients:
+                a.sendJSON({
+                    'method': 'add_log',
+                    'id': self.log_id,
+                    'timestamp': int(ts),
+                    'datetime': dt.strftime("%Y%m%d-%H%M%S"),
+                    'user': user,
+                    'log_user': log_user,
+                    'uid': self.log_uid[user],
+                    'state': state,
+                    'latitude': latitude,
+                    'longitude': longitude
+                })
         self.log_id += 1
         if state == 'INIT' or state == 'INIT':
             self.log_uid[user] += 1
