@@ -139,6 +139,27 @@ $var params: $:params
         }
     }
 
+    function _add_log(data) {
+        var table = document.getElementById("logtable");
+
+        var row = table.insertRow(0);
+
+                // 'id': self.log_id,
+                // 'timestamp': int(ts),
+                // 'datetime': dt.strftime("%Y%m%d-%H%M%S"),
+                // 'user': user,
+                // 'uid': self.log_uid[user],
+                // 'state': state,
+                // 'latitude': latitude,
+                // 'longitude': longitude
+
+        row.innerHTML = "<td>" + data['user'] + "</td>"
+        row.innerHTML+= "<td>" + data['uid'] + "</td>"
+        row.innerHTML+= "<td>" + data['log_user'] + "</td>"
+        row.innerHTML+= "<td>" + data['datetime'] + "</td>"
+        row.innerHTML+= "<td>" + data['state'] + "</td>"
+    }
+
     function _set_state(s) {
     }
 
@@ -150,7 +171,9 @@ $var params: $:params
 
     function register() {
         send({
-            'method':'register'
+            'method':'register',
+            'admin': true,
+            'user': 'admin'
         });
         console.log("registered!");
     }
@@ -159,7 +182,7 @@ $var params: $:params
         webnsock_init();
         socket.onopen = function () {
           console.log("Connected!");
-          register()
+          register();
           get_states();
         };
     }
@@ -249,6 +272,41 @@ $var params: $:params
                     </div>
                     <div class="panel-body">
                         <div id="map"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Log</h3>
+                    </div>
+                    <div class="panel-body">
+                        <a href="/car/log">Download current log</a>
+                        <div style="height: 400px !important; overflow: scroll;">
+                            <table class="table table-condensed table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Order</th>
+                                        <th>Actor</th>
+                                        <th>Datetime</th>
+                                        <th>State</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+
+                                <tbody id="logtable">
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
