@@ -87,7 +87,7 @@ class CARState:
             self.states[user] = 'INIT'
         return self.states[user]
 
-    def set_state(self, user, state, log_user, latitude=-1, longitude=-1):
+    def set_state(self, user, state, log_user="", latitude=-1, longitude=-1):
         self.states[user] = state
         self.log(user, state, log_user, latitude, longitude)
 
