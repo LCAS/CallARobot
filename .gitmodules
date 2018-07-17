@@ -1,4 +1,4 @@
 [submodule "dasher-origin"]
 	path = dasher-origin
-	url = git@github.com:maddox/dasher.git
+	url = https://github.com/maddox/dasher.git
 	branch = master
