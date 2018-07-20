@@ -11,9 +11,12 @@ from datetime import datetime
 from time import mktime
 from threading import Lock
 from collections import defaultdict
+from json import dumps
 
 basicConfig(level=INFO)
 
+import requests
+ 
 
 class CARState:
 
@@ -40,6 +43,16 @@ class CARState:
         self.log_lock = Lock()
 
         self.log_uid = defaultdict(int)
+
+    def trigger_webhook(self, url='http://127.0.0.1:8127/car/webhook_receiver'):
+        try:
+            requests.post(url, data=dumps({
+                'states': self.states,
+                'gps': self.gps
+                }))
+        except Exception as e:
+            warn('trigger_webhook failed: %s' % str(e))
+
 
     def log(self, user, state='NONE', log_user="", latitude=-1, longitude=-1):
         dt = datetime.now()
@@ -89,6 +102,7 @@ class CARState:
 
     def set_state(self, user, state, log_user="", latitude=-1, longitude=-1):
         self.states[user] = state
+        self.trigger_webhook()
         self.log(user, state, log_user, latitude, longitude)
 
     def send_updated_states(self, extra_socket=None):
@@ -151,6 +165,13 @@ class CARWebServer(webnsock.WebServer):
             base='base', globals=globals())
 
         self_app = self
+
+        class WebhookReceiver(self.page):
+            path = '/car/webhook_receiver'
+
+            def POST(self):
+                info(web.input())
+
 
         class AMZBtn(self.page):
             path = '/car/button'
