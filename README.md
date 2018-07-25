@@ -3,13 +3,17 @@ A simple web interface to call a robot
 
 ## Start Server
 
-`WEBSOCKET_URL="wss://lcas.lincoln.ac.uk/car/ws" python callarobot.py`
+* needs installation of `websock`: `sudo pip install webnsock`
+* run as `WEBSOCKET_URL="wss://lcas.lincoln.ac.uk/car/ws" python callarobot.py`
 
 ## Start Client (usues ROS if available)
 
-`WEBSOCKET_URL="wss://lcas.lincoln.ac.uk/car/ws" python ws_client.py`
+* needs installation of https://github.com/websocket-client/websocket-client: `sudo pip install websocket-client`
+* run as `WEBSOCKET_URL="wss://lcas.lincoln.ac.uk/car/ws" python ws_client.py`
 
-## Using ROS Client
+## Using as ROS Client
+
+The demo client `ws_client` will start as ROS node if it find `rospy` module
 
 * `rostopic echo /car_client/get_states` returns a JSON string looking something like this on every state change:
     ```
