@@ -13,7 +13,6 @@ from threading import Lock
 from collections import defaultdict
 from json import dumps
 from threading import Condition
-from Queue import Queue, Empty
 from uuid import uuid4
 from os import getenv
 
@@ -30,7 +29,6 @@ class CARState:
         self.admin_clients = set([])
         self.users = {}
         self.gps = defaultdict(dict)
-        self.event_queues = {}
 
         for u in self.users:
             self.set_state(u, 'INIT')
@@ -57,35 +55,6 @@ class CARState:
     #             }))
     #     except Exception as e:
     #         warn('trigger_webhook failed: %s' % str(e))
-
-    def register_queue(self, key, queue):
-        self.event_queues[key] = queue
-        for user in self.states:
-            try: 
-                state = self.states[user]
-                if user in self.gps and 'latitude' in self.gps[user]: 
-                    latitude = self.gps[user]['latitude']
-                else:
-                    latitude = -1
-                if user in self.gps and 'longitude' in self.gps[user]: 
-                    longitude = self.gps[user]['longitude']
-                else:
-                    longitude = -1
-                self.event_queues[key].put({
-                    'event': 'state_transition',
-                    'user': user,
-                    'prev_state': state,
-                    'new_state': state,
-                    'states': self.states,
-                    'gps': self.gps,
-                    'latitude': latitude,
-                    'longitude': longitude
-                    })
-            except Exception as e:
-                exception("couldn't dispatch event")
-
-    def unregister_queue(self, key):
-        del self.event_queues[key]
 
     def log(self, user, state='NONE', log_user="", latitude=-1, longitude=-1):
         dt = datetime.now()
@@ -144,20 +113,6 @@ class CARState:
             longitude = self.gps[user]['longitude']
         else:
             longitude = -1
-        for k in self.event_queues:
-            try: 
-                self.event_queues[k].put({
-                    'event': 'state_transition',
-                    'user': user,
-                    'prev_state': prev_state,
-                    'new_state': state,
-                    'states': self.states,
-                    'gps': self.gps,
-                    'latitude': latitude,
-                    'longitude': longitude
-                    })
-            except Exception as e:
-                exception("couldn't dispatch event")
         # self.trigger_webhook()
         self.log(user, state, log_user, latitude, longitude)
 
@@ -175,18 +130,6 @@ class CARState:
             })
 
     def send_update_position(self, user, lat, long):
-        for k in self.event_queues:
-            try: 
-                self.event_queues[k].put({
-                    'event': 'gps',
-                    'user': user,
-                    'states': self.states,
-                    'gps': self.gps,
-                    'latitude': lat,
-                    'longitude': long
-                    })
-            except Exception as e:
-                exception("couldn't dispatch event")
         for m in self.admin_clients:
             info('send pos update  %s' % str(m))
             m.sendJSON({
@@ -233,45 +176,6 @@ class CARWebServer(webnsock.WebServer):
             base='base', globals=globals())
 
         self_app = self
-
-        # class WebhookReceiver(self.page):
-        #     path = '/car/webhook_receiver'
-
-        #     def POST(self):
-        #         info(web.input())
-
-        class EventQueue(self.page):
-            path = '/car/events'
-
-            def __init__(self):
-                self.uuid = str(uuid4())
-                info("new event_queue %s connected" % self.uuid)
-                # register event queue
-                self.queue = Queue()
-                self_app.car_states.register_queue(self.uuid, self.queue)
-
-            def __del__(self):
-                info("event_queue %s disconnected" % self.uuid)
-                self_app.car_states.unregister_queue(self.uuid)
-
-            def response(self, data):
-                response = "data: " + data + "\n\n"
-                return response
-
-            def GET(self):
-                web.header("Content-Type", "text/event-stream")
-                web.header('Cache-Control', 'no-cache')
-                while self_app.is_running:
-                    try:
-                        event = self.queue.get(block=True, timeout=1)
-                        try:
-                            e = dumps(event)
-                            r = self.response(str(e))
-                            yield r
-                        except Exception as exc:
-                            exception('exception in event queue')
-                    except Empty:
-                        continue
 
         class AMZBtn(self.page):
             path = '/car/button'
