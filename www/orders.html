@@ -1,4 +1,4 @@
-$def with (params, text)
+$def with (params, text, websocket_url)
 $var title: CallARobot - Orders
 $var jsfiles: 
 $var params: $:params
@@ -179,7 +179,7 @@ $var params: $:params
     }
 
     document.onready = function() {
-        webnsock_init();
+        webnsock_init('$websocket_url');
         socket.onopen = function () {
           console.log("Connected!");
           register();

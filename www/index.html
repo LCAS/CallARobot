@@ -1,4 +1,4 @@
-$def with (params, text, user)
+$def with (params, text, user, websocket_url)
 $var title: CallARobot
 $var jsfiles: 
 $var params: $:params
@@ -118,11 +118,26 @@ $var params: $:params
 
 
     document.onready = function() {
-        webnsock_init();
+        webnsock_init('$websocket_url');
         socket.onopen = function () {
             console.log("Connected!");
             register();
             query_state(user);
+
+            $$.getJSON("https://freegeoip.net/json/", function(res){
+                console.log("estimated from freegeoip " + res.latitude + " " + res.longitude);
+                latitude = res.latitude;
+                longitude = res.longitude;
+                console.log('new location: ' + latitude + ", " + longitude);
+                send({
+                    'method':'location_update', 
+                    'user': user,
+                    'latitude': latitude,
+                    'longitude': longitude
+                });                  
+                
+            });
+
 
             {
                 var id, loc_options;
