@@ -4,7 +4,7 @@ import webnsock
 import web
 from signal import signal, SIGINT
 from os import path
-from logging import error, warn, info, debug, basicConfig, INFO
+from logging import error, warn, info, debug, basicConfig, INFO, exception
 
 from csv import DictWriter
 from datetime import datetime
@@ -12,6 +12,10 @@ from time import mktime
 from threading import Lock
 from collections import defaultdict
 from json import dumps
+from threading import Condition
+from queue import Queue, Empty
+from uuid import uuid4
+from os import getenv
 
 basicConfig(level=INFO)
 
@@ -26,6 +30,7 @@ class CARState:
         self.admin_clients = set([])
         self.users = {}
         self.gps = defaultdict(dict)
+        self.event_queues = {}
 
         for u in self.users:
             self.set_state(u, 'INIT')
@@ -44,15 +49,43 @@ class CARState:
 
         self.log_uid = defaultdict(int)
 
-    def trigger_webhook(self, url='http://127.0.0.1:8127/car/webhook_receiver'):
-        try:
-            requests.post(url, data=dumps({
-                'states': self.states,
-                'gps': self.gps
-                }))
-        except Exception as e:
-            warn('trigger_webhook failed: %s' % str(e))
+    # def trigger_webhook(self, url='http://127.0.0.1:8127/car/webhook_receiver'):
+    #     try:
+    #         requests.post(url, data=dumps({
+    #             'states': self.states,
+    #             'gps': self.gps
+    #             }))
+    #     except Exception as e:
+    #         warn('trigger_webhook failed: %s' % str(e))
 
+    def register_queue(self, key, queue):
+        self.event_queues[key] = queue
+        for user in self.states:
+            try: 
+                state = self.states[user]
+                if user in self.gps and 'latitude' in self.gps[user]: 
+                    latitude = self.gps[user]['latitude']
+                else:
+                    latitude = -1
+                if user in self.gps and 'longitude' in self.gps[user]: 
+                    longitude = self.gps[user]['longitude']
+                else:
+                    longitude = -1
+                self.event_queues[key].put({
+                    'event': 'state_transition',
+                    'user': user,
+                    'prev_state': state,
+                    'new_state': state,
+                    'states': self.states,
+                    'gps': self.gps,
+                    'latitude': latitude,
+                    'longitude': longitude
+                    })
+            except Exception as e:
+                exception("couldn't dispatch event")
+
+    def unregister_queue(self, key):
+        del self.event_queues[key]
 
     def log(self, user, state='NONE', log_user="", latitude=-1, longitude=-1):
         dt = datetime.now()
@@ -101,8 +134,31 @@ class CARState:
         return self.states[user]
 
     def set_state(self, user, state, log_user="", latitude=-1, longitude=-1):
+        prev_state = self.states[user]
         self.states[user] = state
-        self.trigger_webhook()
+        if latitude == -1 and user in self.gps and 'latitude' in self.gps[user]: 
+            latitude = self.gps[user]['latitude']
+        else:
+            latitude = -1
+        if longitude == -1 and user in self.gps and 'longitude' in self.gps[user]: 
+            longitude = self.gps[user]['longitude']
+        else:
+            longitude = -1
+        for k in self.event_queues:
+            try: 
+                self.event_queues[k].put({
+                    'event': 'state_transition',
+                    'user': user,
+                    'prev_state': prev_state,
+                    'new_state': state,
+                    'states': self.states,
+                    'gps': self.gps,
+                    'latitude': latitude,
+                    'longitude': longitude
+                    })
+            except Exception as e:
+                exception("couldn't dispatch event")
+        # self.trigger_webhook()
         self.log(user, state, log_user, latitude, longitude)
 
     def send_updated_states(self, extra_socket=None):
@@ -119,6 +175,18 @@ class CARState:
             })
 
     def send_update_position(self, user, lat, long):
+        for k in self.event_queues:
+            try: 
+                self.event_queues[k].put({
+                    'event': 'gps',
+                    'user': user,
+                    'states': self.states,
+                    'gps': self.gps,
+                    'latitude': lat,
+                    'longitude': long
+                    })
+            except Exception as e:
+                exception("couldn't dispatch event")
         for m in self.admin_clients:
             info('send pos update  %s' % str(m))
             m.sendJSON({
@@ -134,12 +202,12 @@ car_states = CARState()
 
 class CARWebServer(webnsock.WebServer):
 
-    def get_text(self, text):
-        return text
-
     def __init__(self):
 
         self.car_states = car_states
+        self.is_running = True
+        self.websocket_url = getenv('WEBSOCKET_URL', '')
+        # 'wss://lcas.lincoln.ac.uk/car/ws'
 
         self.params = {
             'n_users': len(self.car_states.users),
@@ -166,12 +234,44 @@ class CARWebServer(webnsock.WebServer):
 
         self_app = self
 
-        class WebhookReceiver(self.page):
-            path = '/car/webhook_receiver'
+        # class WebhookReceiver(self.page):
+        #     path = '/car/webhook_receiver'
 
-            def POST(self):
-                info(web.input())
+        #     def POST(self):
+        #         info(web.input())
 
+        class EventQueue(self.page):
+            path = '/car/events'
+
+            def __init__(self):
+                self.uuid = str(uuid4())
+                info("new event_queue %s connected" % self.uuid)
+                # register event queue
+                self.queue = Queue()
+                self_app.car_states.register_queue(self.uuid, self.queue)
+
+            def __del__(self):
+                info("event_queue %s disconnected" % self.uuid)
+                self_app.car_states.unregister_queue(self.uuid)
+
+            def response(self, data):
+                response = "data: " + data + "\n\n"
+                return response
+
+            def GET(self):
+                web.header("Content-Type", "text/event-stream")
+                web.header('Cache-Control', 'no-cache')
+                while self_app.is_running:
+                    try:
+                        event = self.queue.get(block=True, timeout=1)
+                        try:
+                            e = dumps(event)
+                            r = self.response(str(e))
+                            yield r
+                        except Exception as exc:
+                            exception('exception in event queue')
+                    except Empty:
+                        continue
 
         class AMZBtn(self.page):
             path = '/car/button'
@@ -218,7 +318,7 @@ class CARWebServer(webnsock.WebServer):
                     }
 
                     return self_app._renderer.index(
-                        self_app.params, self_app.get_text, user)
+                        self_app.params, self_app.get_text, user, self_app.websocket_url)
 
             def POST(self):
                 user_data = web.input(username='')
@@ -252,7 +352,17 @@ class CARWebServer(webnsock.WebServer):
                         self_app.params, self_app.get_text, '/car/orders')
                 else:
                     return self_app._renderer.orders(
-                        self_app.params, self_app.get_text)
+                        self_app.params, self_app.get_text,
+                        self_app.websocket_url)
+
+    def get_text(self, text):
+        return text
+
+    def stop(self):
+        info('shutdown: self.is_running = False')
+        self.is_running = False
+        webnsock.WebServer.stop(self)
+
 
 
 class CARProtocol(webnsock.JsonWSProtocol):
