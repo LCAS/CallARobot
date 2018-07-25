@@ -285,6 +285,9 @@ class CARProtocol(webnsock.JsonWSProtocol):
         if self in self.car_states.clients:
             info('unregistered')
             self.car_states.clients.remove(self)
+        if self in self.car_states.admin_clients:
+            info('unregistered')
+            self.car_states.admin_clients.remove(self)
 
     def on_set_state(self, payload):
         info(
