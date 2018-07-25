@@ -57,7 +57,7 @@ class SSEClient(Thread):
 
 
 if __name__ == "__main__":
-    websocket_url = getenv('WEBSOCKET_URL', 'http://0.0.0.0:8127/car/events')
+    websocket_url = getenv('SSE_URL', 'http://0.0.0.0:8127/car/events')
 
     def cb(data):
         pprint(data)
@@ -82,11 +82,10 @@ if __name__ == "__main__":
                 else:
                     pub_states.publish(dumps(data))
             sse_client = SSEClient(url=websocket_url, callback=ros_publish)
-            sse_client.start()
-            rospy.spin()
+            sse_client.spin()
         except:
             exception('no ROS, running fallback')
             main()
 
 
-    ros_main()
+    main()

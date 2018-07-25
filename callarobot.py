@@ -13,7 +13,7 @@ from threading import Lock
 from collections import defaultdict
 from json import dumps
 from threading import Condition
-from queue import Queue, Empty
+from Queue import Queue, Empty
 from uuid import uuid4
 from os import getenv
 
