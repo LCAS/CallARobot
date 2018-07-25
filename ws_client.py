@@ -88,17 +88,18 @@ if __name__ == "__main__":
         try:
             import rospy
             from std_msgs.msg import String
+
             rospy.init_node('car_client')
-            
-            pub_states = rospy.Publisher('~get_states', String, queue_size=100, latched=True)
-            pub_gps = rospy.Publisher('~get_gps', String, queue_size=100, latched=True)
+            pub_states = rospy.Publisher('~get_states', String, queue_size=100, latch=True)
+            pub_gps = rospy.Publisher('~get_gps', String, queue_size=100, latch=True)
 
             def ros_publish(data):
+                rospy.loginfo('received data from web socket')
                 if data['method'] == 'update_position':
                     pub_gps.publish(dumps(data))
                 else:
                     pub_states.publish(dumps(data))
-            ws_client = WSClient(callback=ros_publish)
+            ws_client = WSClient(ros_publish)
 
             def set_state(msg):
                 payload = loads(msg.data)
@@ -108,9 +109,11 @@ if __name__ == "__main__":
 
             rospy.Subscriber('~set_states', String, set_state)
 
-            ws_client.spin()
-        except:
-            exception('no ROS, running fallback')
+            ws_client.start()
+            rospy.spin()
+        except Exception as e:
+            print "ROS exception %s" % str(e)
+            exception('no ROS, running fallback %s' % str(e))
             client = WSClient(callback)
             client.start()
             sleep(5)
