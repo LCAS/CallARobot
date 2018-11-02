@@ -10,7 +10,7 @@ from logging import exception, warning, info, basicConfig, INFO
 
 basicConfig(level=INFO)
 
-# Install requirementsL: pip install websocket-client
+# Install requirements: pip install websocket-client
 
 class WSClient(Thread):
 
@@ -23,21 +23,21 @@ class WSClient(Thread):
         websocket.enableTrace(False)
         self.connected = False
 
-    def on_message(self, ws, message):
+    def on_message(self, message):
         data = loads(message)
         if self.callback is not None:
             self.callback(data)
         pprint(data)
 
-    def on_error(self, ws, error):
+    def on_error(self, error):
         self.connected = False
         print error
 
-    def on_close(self, ws):
+    def on_close(self):
         self.connected = False
         info("### closed ###")
 
-    def on_open(self, ws):
+    def on_open(self):
         self.connected = True
         info("### open ###")
         # register as admin to call-a-robot
