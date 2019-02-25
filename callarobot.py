@@ -163,7 +163,7 @@ class CARWebServer(webnsock.WebServer):
                 path.dirname(__file__),
                 'www/static'
             ),
-            '/car'
+            '/car/'
         )
 
         self._renderer = web.template.render(
