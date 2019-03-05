@@ -130,8 +130,6 @@ class CARState:
             })
 
     def send_update_position(self, user, lat, long, acc, ts):
-#        dt = datetime.now()
-#        ts = mktime(dt.timetuple())
         for m in self.admin_clients:
             info('send pos update  %s' % str(m))
             m.sendJSON({
@@ -313,11 +311,9 @@ class CARProtocol(webnsock.JsonWSProtocol):
 
     def on_location_update(self, payload):
         info('GPS update')
-        print payload
         self.car_states.gps[payload['user']] = {
             'latitude': payload['latitude'],
-            'longitude': payload['longitude'],
-            'accuracy': payload['accuracy']
+            'longitude': payload['longitude']
             
         }
         self.car_states.log(
