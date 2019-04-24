@@ -19,7 +19,7 @@ from os import getenv
 basicConfig(level=INFO)
 
 import requests
- 
+
 
 class CARState:
 
@@ -105,11 +105,11 @@ class CARState:
     def set_state(self, user, state, log_user="", latitude=-1, longitude=-1):
         prev_state = self.states[user]
         self.states[user] = state
-        if latitude == -1 and user in self.gps and 'latitude' in self.gps[user]: 
+        if latitude == -1 and user in self.gps and 'latitude' in self.gps[user]:
             latitude = self.gps[user]['latitude']
         else:
             latitude = -1
-        if longitude == -1 and user in self.gps and 'longitude' in self.gps[user]: 
+        if longitude == -1 and user in self.gps and 'longitude' in self.gps[user]:
             longitude = self.gps[user]['longitude']
         else:
             longitude = -1
@@ -326,6 +326,9 @@ class CARProtocol(webnsock.JsonWSProtocol):
         self.car_states.send_updated_states(self)
 
     def update_state(self, user, state):
+        # initialise the user if not already done
+        if user not in self.car_states.states:
+            self.car_states.get_state(user)
         self.car_states.set_state(user, state, self.log_user)
         self.send_updated_states()
 
