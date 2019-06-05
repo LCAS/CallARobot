@@ -51,11 +51,12 @@ class WSClient(Thread):
         }))
 
     def set_state(self, user, state):
-        self.ws.send(dumps({
-            'method':'set_state',
-            'state': state,
-            'user': user
-        }))
+	if self.ws:
+            self.ws.send(dumps({
+                'method':'set_state',
+                'state': state,
+                'user': user
+            }))
 
 
     def run(self):
