@@ -10,7 +10,7 @@ from logging import exception, warning, info, basicConfig, INFO
 
 basicConfig(level=INFO)
 
-# Install requirements: pip install websocket-client
+# Install requirements: pip install websocket-client (no longer needed as included locally, still needs to install 'six')
 
 class WSClient(Thread):
 
