@@ -1,4 +1,4 @@
-$def with (params, text, user, websocket_url)
+$def with (params, text, user, rows, websocket_url)
 $var title: CallARobot
 $var jsfiles: 
 $var params: $:params
@@ -143,36 +143,35 @@ $var params: $:params
                 var id, loc_options;
 
                 function loc_success(pos) {
-                  var crd = pos.coords;
-		  var tm = new Date(pos.timestamp);
+                    var crd = pos.coords;
+                    var tm = new Date(pos.timestamp);
 
-                  latitude = crd.latitude;
-                  longitude = crd.longitude;
-		  accuracy = crd.accuracy;
-		 // heading = crd.heading;
-                 // speed = crd.speed;
-                  console.log('new location: ' + latitude + ", " + longitude);
-                  send({
-                    'method':'location_update', 
-                    'user': user,
-                    'latitude': latitude,
-                    'longitude': longitude,
-                    'accuracy': accuracy,
-                    'rcv_time': tm.getTime()
-		   // 'heading' : heading,
-                   // 'velocity' : speed
-
-                  });                  
+                    latitude = crd.latitude;
+                    longitude = crd.longitude;
+                    accuracy = crd.accuracy;
+                    // heading = crd.heading;
+                    // speed = crd.speed;
+                    console.log('new location: ' + latitude + ", " + longitude);
+                    send({
+                        'method':'location_update', 
+                        'user': user,
+                        'latitude': latitude,
+                        'longitude': longitude,
+                        'accuracy': accuracy,
+                        'rcv_time': tm.getTime()
+                        // 'heading' : heading,
+                        // 'velocity' : speed
+                    });                  
                 }
 
                 function loc_error(err) {
-                  console.warn('loc_ERROR(' + err.code + '): ' + err.message);
+                    console.warn('loc_ERROR(' + err.code + '): ' + err.message);
                 }
 
                 loc_options = {
-                  enableHighAccuracy: true,
-                  timeout: 5000,
-                  maximumAge: 30000
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 30000
                 };
 
                 id = navigator.geolocation.watchPosition(loc_success, loc_error, loc_options);
@@ -195,21 +194,43 @@ $var params: $:params
     // getLocation(function(lat, long) {
     //     console.log(lat + " " + long);    
     // });
-    
-
+    /* $$(".dropdown-menu li a").click(function(){
+        $$(this).parents(".dropdown").find('.btn').html($$(this).text() + ' <span class="caret"></span>');
+        $$(this).parents(".dropdown").find('.btn').val($$(this).data('value'));
+    });
+ */
 </script>
 <div class="section">
-    <div class="container2">
+    <div class="container-fluid">
         <div class="row">
             <div class="col-md-12">
                 <div  class="panel panel-primary">
                     <div class="panel-heading">
                     <form action="#" method="post">
-                        <h3 class="panel-title">User: $user  <button class="btn" type="submit">logout</button></h3></form>
+                        <h3 class="panel-title">User: $user  <button class="btn btn-warning" type="submit">logout</button></h3>
+                    </form>
+                </div>
+                <div class="panel-body">
+                    <div class="btn-group btn-group-lg btn-group-justified" role="group">
+                        <div class="btn-group btn-group-lg" role="group">
+                            <div class="dropdown">
+                                <button style="font-size: 300%;" class="btn btn-lg btn-success dropdown-toggle" 
+                                        type="button" id="dropdownMenu1" 
+                                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                    Picking Row: <span class="selection"></span> <span class="caret"></span>
+                                </button>
+                                <ul class="dropdown-menu"  style="width: 100%;" aria-labelledby="dropdownMenu1">
+                                    $for r in rows:
+                                        <li style="font-size: 300%;" ><a href="#">$r</a></li>
+                                        <li role="separator" class="divider"></li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="panel-body">
-                                <div class="btn-group2" role="group">
+                </div>
+                <div class="panel-body">
+
+                    <div class="" role="group">
                                         <button style="font-size: 10vw; min-height: 80vh;"
                                                 id="call_btn" 
                                                 onclick="send({
@@ -270,3 +291,15 @@ $var params: $:params
   </div>
 </div>
  -->
+
+ <script>
+     $$(".dropdown-menu li a").click(function(){
+        $$(this).parents(".btn-group").find('.selection').text($$(this).text());
+        $$(this).parents(".btn-group").find('.selection').val($$(this).text());
+        console.log($$(this).parents(".btn-group"));
+    });
+
+    $$('.selection').text($$(".dropdown-menu li a").first().text());
+    $$('.selection').val($$(".dropdown-menu li a").first().text());
+    console.log($:params);
+</script>

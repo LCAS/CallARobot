@@ -156,6 +156,11 @@ class CARWebServer(webnsock.WebServer):
         self.websocket_url = getenv('WEBSOCKET_URL', '')
         # 'wss://lcas.lincoln.ac.uk/car/ws'
 
+        self.rows = [
+            'A1', 'A2', 'A3', 'A4', 'A5', 'A6',
+            'B1', 'B2', 'B3', 'B4', 'B5', 'B6'
+        ]
+
         self.params = {
             'n_users': len(self.car_states.users),
             'users': list(self.car_states.users)
@@ -226,7 +231,7 @@ class CARWebServer(webnsock.WebServer):
                     }
 
                     return self_app._renderer.index(
-                        self_app.params, self_app.get_text, user, self_app.websocket_url)
+                        self_app.params, self_app.get_text, user, self_app.rows, self_app.websocket_url)
 
             def POST(self):
                 user_data = web.input(username='')
