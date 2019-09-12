@@ -1,4 +1,4 @@
-$def with (params, text, websocket_url)
+$def with (params, text, websocket_url, gmaps_api)
 $var title: CallARobot - Orders
 $var jsfiles: 
 $var params: $:params
@@ -13,7 +13,7 @@ $var params: $:params
 
 <script>
 
-    map_api_key='AIzaSyCniXaQ1L0MYa_T4xNwPMokJSjkDIcUcvo'
+    map_api_key='$gmaps_api'
 
     markers = {};
 
@@ -25,11 +25,11 @@ $var params: $:params
           center: center,
           mapTypeId: 'satellite'
         });
-        var marker = new google.maps.Marker({
+/*         var marker = new google.maps.Marker({
           position: center,
           map: map,
           label: "YOU"
-        });
+        }); */
     }
 
 
@@ -114,6 +114,7 @@ $var params: $:params
 
     function _update_position(data) {
         var user = data['user'];
+        var row = data['row'];
         var lat = data['lat'];
         var long = data['long'];
         var pos = {lat: lat, lng: long};
@@ -124,7 +125,7 @@ $var params: $:params
         markers[user] = new google.maps.Marker({
           position: pos,
           map: map,
-          label: user
+          label: user + " (" + row + ")"
         });
 
     }
@@ -157,6 +158,7 @@ $var params: $:params
         row.innerHTML+= "<td>" + data['uid'] + "</td>"
         row.innerHTML+= "<td>" + data['log_user'] + "</td>"
         row.innerHTML+= "<td>" + data['datetime'] + "</td>"
+        row.innerHTML+= "<td>" + data['row'] + "</td>"
         row.innerHTML+= "<td>" + data['state'] + "</td>"
     }
 
@@ -197,7 +199,7 @@ $var params: $:params
 
 <script 
     async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCniXaQ1L0MYa_T4xNwPMokJSjkDIcUcvo&callback=locInit">
+    src="https://maps.googleapis.com/maps/api/js?key=$gmaps_api&callback=locInit">
 </script>
 
 
@@ -298,8 +300,8 @@ $var params: $:params
                                         <th>Order</th>
                                         <th>Actor</th>
                                         <th>Datetime</th>
+                                        <th>Row</th>
                                         <th>State</th>
-                                        <th></th>
                                     </tr>
                                 </thead>
 

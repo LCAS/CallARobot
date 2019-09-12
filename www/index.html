@@ -1,4 +1,4 @@
-$def with (params, text, user, websocket_url)
+$def with (params, text, user, rows, websocket_url)
 $var title: CallARobot
 $var jsfiles: 
 $var params: $:params
@@ -114,7 +114,14 @@ $var params: $:params
         console.log("registered!");
     }
 
+    // globals
+    latitude = -1;
+    longitude = -1;
+    accuracy = -1;
+    row='';
 
+    state = '';
+    user = '$user';
 
 
     document.onready = function() {
@@ -124,55 +131,75 @@ $var params: $:params
             register();
             query_state(user);
 
-            $$.getJSON("https://freegeoip.net/json/", function(res){
+            $$('.selection').text($$(".dropdown-menu li a").first().text());
+            $$('.selection').val($$(".dropdown-menu li a").first().text());
+            row=$$('.selection').val();
+
+            send({
+                'method':'location_update', 
+                'row': row,
+                'user': user,
+                'latitude': latitude,
+                'longitude': longitude,
+                'accuracy': accuracy,
+                'rcv_time': Date.now()
+                // 'heading' : heading,
+                // 'velocity' : speed
+            });                  
+
+            /*$$.getJSON("https://freegeoip.net/json/", function(res){
                 console.log("estimated from freegeoip " + res.latitude + " " + res.longitude);
                 latitude = res.latitude;
                 longitude = res.longitude;
-                console.log('new location: ' + latitude + ", " + longitude);
+                var row = $$('.selection').val();
+                console.log('new location: ' + latitude + ", " + longitude + 'row: ' + row);
                 send({
-                    'method':'location_update', 
+                    'method': 'location_update',
+                    'row': row,
                     'user': user,
                     'latitude': latitude,
                     'longitude': longitude
-                });                  
+                });   
+                               
                 
-            });
+            });*/
 
 
             {
                 var id, loc_options;
 
                 function loc_success(pos) {
-                  var crd = pos.coords;
-		  var tm = new Date(pos.timestamp);
+                    var crd = pos.coords;
+                    var tm = new Date(pos.timestamp);
 
-                  latitude = crd.latitude;
-                  longitude = crd.longitude;
-		  accuracy = crd.accuracy;
-		 // heading = crd.heading;
-                 // speed = crd.speed;
-                  console.log('new location: ' + latitude + ", " + longitude);
-                  send({
-                    'method':'location_update', 
-                    'user': user,
-                    'latitude': latitude,
-                    'longitude': longitude,
-                    'accuracy': accuracy,
-                    'rcv_time': tm.getTime()
-		   // 'heading' : heading,
-                   // 'velocity' : speed
-
-                  });                  
+                    latitude = crd.latitude;
+                    longitude = crd.longitude;
+                    accuracy = crd.accuracy;
+                    // heading = crd.heading;
+                    // speed = crd.speed;
+                    var row = $$('.selection').val();
+                    console.log('new location: ' + latitude + ", " + longitude + 'row: ' + row);
+                    send({
+                        'method':'location_update', 
+                        'row': row,
+                        'user': user,
+                        'latitude': latitude,
+                        'longitude': longitude,
+                        'accuracy': accuracy,
+                        'rcv_time': tm.getTime()
+                        // 'heading' : heading,
+                        // 'velocity' : speed
+                    });                  
                 }
 
                 function loc_error(err) {
-                  console.warn('loc_ERROR(' + err.code + '): ' + err.message);
+                    console.warn('loc_ERROR(' + err.code + '): ' + err.message);
                 }
 
                 loc_options = {
-                  enableHighAccuracy: true,
-                  timeout: 5000,
-                  maximumAge: 30000
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 30000
                 };
 
                 id = navigator.geolocation.watchPosition(loc_success, loc_error, loc_options);
@@ -182,12 +209,6 @@ $var params: $:params
         };
     }
 
-    latitude = -1;
-    longitude = -1;
-
-
-    state = '';
-    user = '$user';
 
 
 
@@ -195,26 +216,49 @@ $var params: $:params
     // getLocation(function(lat, long) {
     //     console.log(lat + " " + long);    
     // });
-    
-
+    /* $$(".dropdown-menu li a").click(function(){
+        $$(this).parents(".dropdown").find('.btn').html($$(this).text() + ' <span class="caret"></span>');
+        $$(this).parents(".dropdown").find('.btn').val($$(this).data('value'));
+    });
+ */
 </script>
 <div class="section">
-    <div class="container2">
+    <div class="container-fluid">
         <div class="row">
             <div class="col-md-12">
                 <div  class="panel panel-primary">
                     <div class="panel-heading">
                     <form action="#" method="post">
-                        <h3 class="panel-title">User: $user  <button class="btn" type="submit">logout</button></h3></form>
+                        <h3 class="panel-title">User: $user  <button class="btn btn-warning" type="submit">logout</button></h3>
+                    </form>
+                </div>
+                <div class="panel-body">
+                    <div class="btn-group btn-group-lg btn-group-justified" role="group">
+                        <div class="btn-group btn-group-lg" role="group">
+                            <div class="dropdown">
+                                <button style="font-size: 300%;" class="btn btn-lg btn-success dropdown-toggle" 
+                                        type="button" id="dropdownMenu1" 
+                                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                    Picking Row: <span class="selection"></span> <span class="caret"></span>
+                                </button>
+                                <ul class="dropdown-menu"  style="width: 100%;" aria-labelledby="dropdownMenu1">
+                                    $for r in rows:
+                                        <li style="font-size: 300%;" ><a href="#">$r</a></li>
+                                        <li role="separator" class="divider"></li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="panel-body">
-                                <div class="btn-group2" role="group">
+                </div>
+                <div class="panel-body">
+
+                    <div class="" role="group">
                                         <button style="font-size: 10vw; min-height: 80vh;"
                                                 id="call_btn" 
                                                 onclick="send({
                                                     'method':'call', 
                                                     'user': user,
+                                                    'row': row,
                                                 });" 
                                                 class="btn btn-block btn-lg">$text('call a robot')</button>
                                 </div>
@@ -270,3 +314,25 @@ $var params: $:params
   </div>
 </div>
  -->
+
+ <script>
+     $$(".dropdown-menu li a").click(function(){
+        $$(this).parents(".btn-group").find('.selection').text($$(this).text());
+        $$(this).parents(".btn-group").find('.selection').val($$(this).text());
+        row=$$('.selection').val();
+        console.log('new location row: ' + row);
+        send({
+            'method':'location_update', 
+            'row': row,
+            'user': user,
+            'latitude': latitude,
+            'longitude': longitude,
+            'accuracy': accuracy,
+            'rcv_time': Date.now()
+            // 'heading' : heading,
+            // 'velocity' : speed
+        });                  
+
+    });
+
+</script>
