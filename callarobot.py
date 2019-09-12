@@ -235,9 +235,13 @@ class CARWebServer(webnsock.WebServer):
                         'n_users': len(self_app.car_states.users),
                         'users': list(self_app.car_states.users)
                     }
+                    if 'row' in self_app.car_states.gps[user]:
+                        row = self_app.car_states.gps[user]['row']
+                    else:
+                        row = ''
 
                     return self_app._renderer.index(
-                        self_app.params, self_app.get_text, user, self_app.rows, self_app.websocket_url)
+                        self_app.params, self_app.get_text, user, self_app.rows, self_app.websocket_url, row)
 
             def POST(self):
                 user_data = web.input(username='')

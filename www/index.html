@@ -1,4 +1,4 @@
-$def with (params, text, user, rows, websocket_url)
+$def with (params, text, user, rows, websocket_url, row)
 $var title: CallARobot
 $var jsfiles: 
 $var params: $:params
@@ -133,6 +133,11 @@ $var params: $:params
 
             $$('.selection').text($$(".dropdown-menu li a").first().text());
             $$('.selection').val($$(".dropdown-menu li a").first().text());
+
+            $if len(row) > 0:
+                $$('.selection').text('$row');
+                $$('.selection').val('$row');
+
             row=$$('.selection').val();
 
             send({
