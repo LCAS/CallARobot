@@ -159,12 +159,13 @@ class CARWebServer(webnsock.WebServer):
         self.car_states = car_states
         self.is_running = True
         self.websocket_url = getenv('WEBSOCKET_URL', '')
+        self.gmaps_api = getenv('GMAPS_API', 'XXX')
+        self.rows_str = getenv(
+            'CAR_ROWS', 
+            'A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6')
         # 'wss://lcas.lincoln.ac.uk/car/ws'
 
-        self.rows = [
-            'A1', 'A2', 'A3', 'A4', 'A5', 'A6',
-            'B1', 'B2', 'B3', 'B4', 'B5', 'B6'
-        ]
+        self.rows = self.rows_str.split(' ')
 
         self.params = {
             'n_users': len(self.car_states.users),
@@ -271,7 +272,7 @@ class CARWebServer(webnsock.WebServer):
                 else:
                     return self_app._renderer.orders(
                         self_app.params, self_app.get_text,
-                        self_app.websocket_url)
+                        self_app.websocket_url, self_app.gmaps_api)
 
     def get_text(self, text):
         return text

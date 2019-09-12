@@ -1,4 +1,4 @@
-$def with (params, text, websocket_url)
+$def with (params, text, websocket_url, gmaps_api)
 $var title: CallARobot - Orders
 $var jsfiles: 
 $var params: $:params
@@ -13,7 +13,7 @@ $var params: $:params
 
 <script>
 
-    map_api_key='AIzaSyCniXaQ1L0MYa_T4xNwPMokJSjkDIcUcvo'
+    map_api_key='$gmaps_api'
 
     markers = {};
 
