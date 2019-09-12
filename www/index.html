@@ -144,15 +144,24 @@ $var params: $:params
 
                 function loc_success(pos) {
                   var crd = pos.coords;
+		  var tm = new Date(pos.timestamp);
 
                   latitude = crd.latitude;
                   longitude = crd.longitude;
+		  accuracy = crd.accuracy;
+		 // heading = crd.heading;
+                 // speed = crd.speed;
                   console.log('new location: ' + latitude + ", " + longitude);
                   send({
                     'method':'location_update', 
                     'user': user,
                     'latitude': latitude,
-                    'longitude': longitude
+                    'longitude': longitude,
+                    'accuracy': accuracy,
+                    'rcv_time': tm.getTime()
+		   // 'heading' : heading,
+                   // 'velocity' : speed
+
                   });                  
                 }
 

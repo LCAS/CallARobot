@@ -1,14 +1,16 @@
 # CallARobot
 A simple web interface to call a robot
 
+## Installation
+
+run `sudo pip install -r requirements.txt`
+
 ## Start Server
 
-* needs installation of `websock`: `sudo pip install webnsock`
 * run as `WEBSOCKET_URL="wss://lcas.lincoln.ac.uk/car/ws" python callarobot.py`
 
 ## Start Client (usues ROS if available)
 
-* needs installation of https://github.com/websocket-client/websocket-client: `sudo pip install websocket-client`
 * run as `WEBSOCKET_URL="wss://lcas.lincoln.ac.uk/car/ws" python ws_client.py`
 
 ## Using as ROS Client
