@@ -114,7 +114,14 @@ $var params: $:params
         console.log("registered!");
     }
 
+    // globals
+    latitude = -1;
+    longitude = -1;
+    accuracy = -1;
+    row='';
 
+    state = '';
+    user = '$user';
 
 
     document.onready = function() {
@@ -124,7 +131,23 @@ $var params: $:params
             register();
             query_state(user);
 
-            $$.getJSON("https://freegeoip.net/json/", function(res){
+            $$('.selection').text($$(".dropdown-menu li a").first().text());
+            $$('.selection').val($$(".dropdown-menu li a").first().text());
+            row=$$('.selection').val();
+
+            send({
+                'method':'location_update', 
+                'row': row,
+                'user': user,
+                'latitude': latitude,
+                'longitude': longitude,
+                'accuracy': accuracy,
+                'rcv_time': Date.now()
+                // 'heading' : heading,
+                // 'velocity' : speed
+            });                  
+
+            /*$$.getJSON("https://freegeoip.net/json/", function(res){
                 console.log("estimated from freegeoip " + res.latitude + " " + res.longitude);
                 latitude = res.latitude;
                 longitude = res.longitude;
@@ -136,9 +159,10 @@ $var params: $:params
                     'user': user,
                     'latitude': latitude,
                     'longitude': longitude
-                });                  
+                });   
+                               
                 
-            });
+            });*/
 
 
             {
@@ -185,12 +209,6 @@ $var params: $:params
         };
     }
 
-    latitude = -1;
-    longitude = -1;
-    row='';
-
-    state = '';
-    user = '$user';
 
 
 
@@ -316,9 +334,5 @@ $var params: $:params
         });                  
 
     });
-
-    $$('.selection').text($$(".dropdown-menu li a").first().text());
-    $$('.selection').val($$(".dropdown-menu li a").first().text());
-    row=$$('.selection').val();
 
 </script>
