@@ -37,7 +37,7 @@ class CARState:
         self.csvfile = open(self.log_filename, 'w', 0)
         self.log_fieldnames = [
             'id', 'timestamp', 'datetime', 'user', 'log_user', 'uid',
-            'state', 'latitude', 'longitude']
+            'state', 'latitude', 'longitude', 'row']
         self.log_writer = DictWriter(
             self.csvfile, fieldnames=self.log_fieldnames
         )
@@ -56,7 +56,7 @@ class CARState:
     #     except Exception as e:
     #         warn('trigger_webhook failed: %s' % str(e))
 
-    def log(self, user, state='NONE', log_user="", latitude=-1, longitude=-1):
+    def log(self, user, state='NONE', log_user="", latitude=-1, longitude=-1, row=''):
         dt = datetime.now()
         ts = mktime(dt.timetuple())
 
@@ -64,6 +64,8 @@ class CARState:
             latitude = self.gps[user]['latitude']
         if 'longitude' in self.gps[user]:
             longitude = self.gps[user]['longitude']
+        if 'row' in self.gps[user]:
+            row = self.gps[user]['row']
 
         entry = {
             'id': self.log_id,
@@ -74,7 +76,8 @@ class CARState:
             'uid': self.log_uid[user],
             'state': state,
             'latitude': latitude,
-            'longitude': longitude
+            'longitude': longitude,
+            'row': row
         }
 
         with self.log_lock:
@@ -91,7 +94,8 @@ class CARState:
                     'uid': self.log_uid[user],
                     'state': state,
                     'latitude': latitude,
-                    'longitude': longitude
+                    'longitude': longitude,
+                    'row': row
                 })
         self.log_id += 1
         if state == 'INIT' or state == 'INIT':
@@ -102,7 +106,7 @@ class CARState:
             self.states[user] = 'INIT'
         return self.states[user]
 
-    def set_state(self, user, state, log_user="", latitude=-1, longitude=-1):
+    def set_state(self, user, state, log_user="", latitude=-1, longitude=-1, row=''):
         prev_state = self.states[user]
         self.states[user] = state
         if latitude == -1 and user in self.gps and 'latitude' in self.gps[user]:
@@ -114,7 +118,7 @@ class CARState:
         else:
             longitude = -1
         # self.trigger_webhook()
-        self.log(user, state, log_user, latitude, longitude)
+        self.log(user, state, log_user, latitude, longitude, row)
 
     def send_updated_states(self, extra_socket=None):
         if extra_socket is None:
@@ -129,7 +133,7 @@ class CARState:
                 'states': self.states
             })
 
-    def send_update_position(self, user, lat, long, acc, ts):
+    def send_update_position(self, user, lat, long, acc, ts, row):
         for m in self.admin_clients:
             info('send pos update  %s' % str(m))
             m.sendJSON({
@@ -138,7 +142,8 @@ class CARState:
                 'lat': lat,
                 'long': long,
                 'accu': acc,
-                'timestamp': ts
+                'timestamp': ts,
+                'row': row
 #                'heading': heading,
 #                'velocity':velocity
             })
@@ -315,24 +320,26 @@ class CARProtocol(webnsock.JsonWSProtocol):
         self.send_updated_states()
 
     def on_location_update(self, payload):
-        info('GPS update')
+        info('GPS update: ' + str(payload))
         self.car_states.gps[payload['user']] = {
             'latitude': payload['latitude'],
-            'longitude': payload['longitude']
-            
+            'longitude': payload['longitude'],
+            'row': payload['row']   
         }
         self.car_states.log(
             payload['user'],
             state='GPS',
             latitude=payload['latitude'],
-            longitude=payload['longitude']
+            longitude=payload['longitude'],
+            row=payload['row'],
         )
         self.car_states.send_update_position(
             payload['user'],
             payload['latitude'],
             payload['longitude'],
             payload['accuracy'],
-            payload['rcv_time']
+            payload['rcv_time'],
+            payload['row']
 #            payload['heading'],
 #            payload['velocity']
             )

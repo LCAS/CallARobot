@@ -128,9 +128,11 @@ $var params: $:params
                 console.log("estimated from freegeoip " + res.latitude + " " + res.longitude);
                 latitude = res.latitude;
                 longitude = res.longitude;
-                console.log('new location: ' + latitude + ", " + longitude);
+                var row = $$('.selection').val();
+                console.log('new location: ' + latitude + ", " + longitude + 'row: ' + row);
                 send({
-                    'method':'location_update', 
+                    'method': 'location_update',
+                    'row': row,
                     'user': user,
                     'latitude': latitude,
                     'longitude': longitude
@@ -151,9 +153,11 @@ $var params: $:params
                     accuracy = crd.accuracy;
                     // heading = crd.heading;
                     // speed = crd.speed;
-                    console.log('new location: ' + latitude + ", " + longitude);
+                    var row = $$('.selection').val();
+                    console.log('new location: ' + latitude + ", " + longitude + 'row: ' + row);
                     send({
                         'method':'location_update', 
+                        'row': row,
                         'user': user,
                         'latitude': latitude,
                         'longitude': longitude,
@@ -183,7 +187,7 @@ $var params: $:params
 
     latitude = -1;
     longitude = -1;
-
+    row='';
 
     state = '';
     user = '$user';
@@ -236,6 +240,7 @@ $var params: $:params
                                                 onclick="send({
                                                     'method':'call', 
                                                     'user': user,
+                                                    'row': row,
                                                 });" 
                                                 class="btn btn-block btn-lg">$text('call a robot')</button>
                                 </div>
@@ -296,10 +301,24 @@ $var params: $:params
      $$(".dropdown-menu li a").click(function(){
         $$(this).parents(".btn-group").find('.selection').text($$(this).text());
         $$(this).parents(".btn-group").find('.selection').val($$(this).text());
-        console.log($$(this).parents(".btn-group"));
+        row=$$('.selection').val();
+        console.log('new location row: ' + row);
+        send({
+            'method':'location_update', 
+            'row': row,
+            'user': user,
+            'latitude': latitude,
+            'longitude': longitude,
+            'accuracy': accuracy,
+            'rcv_time': Date.now()
+            // 'heading' : heading,
+            // 'velocity' : speed
+        });                  
+
     });
 
     $$('.selection').text($$(".dropdown-menu li a").first().text());
     $$('.selection').val($$(".dropdown-menu li a").first().text());
-    console.log($:params);
+    row=$$('.selection').val();
+
 </script>
