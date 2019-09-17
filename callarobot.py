@@ -221,6 +221,11 @@ class CARWebServer(webnsock.WebServer):
                 web.header('Content-transfer-encoding', 'binary')
                 return open(self_app.car_states.log_filename, 'rb').read()
 
+        class Redir(self.page):
+            path = '/car'
+            def GET(self):
+                return web.seeother('/car/')
+
         class Index(self.page):
             path = '/car/'
 
