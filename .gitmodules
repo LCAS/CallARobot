@@ -1,7 +1,7 @@
 [submodule "dasher-origin"]
-	path = dasher-origin
+	path = call_a_robot/dasher-origin
 	url = https://github.com/maddox/dasher.git
 	branch = master
 [submodule "Robot-Calling-Sytem"]
-	path = Robot-Calling-Sytem
+	path = call_a_robot/Robot-Calling-Sytem
 	url = https://github.com/Haydencoe/Robot-Calling-Sytem.git
