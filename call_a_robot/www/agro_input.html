@@ -1,4 +1,4 @@
-$def with (params, text, user, rows, websocket_url)
+$def with (params, text, user, qr_node, websocket_url)
 $var title: CallARobot
 $var jsfiles: 
 $var params: $:params
@@ -116,7 +116,7 @@ $var params: $:params
     latitude = -1;
     longitude = -1;
     accuracy = -1;
-    row='';
+    row='$qr_node';
 
     state = '';
     user = '$user';
@@ -161,6 +161,7 @@ $var params: $:params
                     send({
                         'method':'location_update', 
                         'row': row,
+                        'node': node,
                         'user': user,
                         'latitude': latitude,
                         'longitude': longitude,

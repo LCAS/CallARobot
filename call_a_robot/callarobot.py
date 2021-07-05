@@ -215,11 +215,10 @@ class CARWebServer(webnsock.WebServer):
                 self_app.car_states.gps[user]['qr_node'] = qr_content
                 info(self_app.car_states.gps[user])
                 return self_app._renderer.agro_input(
-                    self_app.params, self_app.get_text, user, self_app.rows, self_app.websocket_url
+                    self_app.params, self_app.get_text, user, qr_content, self_app.websocket_url
                 )
 
             def POST(self):
-                info('QR code')
                 qr_content = web.input(qr_content='').qr_content
                 user = web.cookies().get('_car_user')
                 if user is None:
