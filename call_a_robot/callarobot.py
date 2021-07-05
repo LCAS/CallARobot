@@ -320,9 +320,18 @@ class CARProtocol(webnsock.JsonWSProtocol):
         self.update_state(payload['user'], payload['state'])
 
     def on_register(self, payload):
-        info('registering management interface %s' % str(self))
+        info('registering interface %s' % str(payload))
         if payload['admin']:
             self.car_states.admin_clients.add(self)
+        if payload['user'] in self.car_states.users:
+            info(
+                'user %s already known' % payload['user']
+            )
+        else:
+            info(
+                'new user %s registered' % payload['user']
+            )
+            self.car_states.users[payload['user']] = payload['user']
         self.log_user = payload['user']
 
     def on_get_states(self, payload):

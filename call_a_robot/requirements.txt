@@ -1,2 +1,5 @@
 webnsock
 websocket-client
+web.py == 0.51
+requests
+qrcode[pil]
