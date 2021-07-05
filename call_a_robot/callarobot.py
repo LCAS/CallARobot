@@ -107,7 +107,7 @@ class CARState:
         return self.states[user]
 
     def set_state(self, user, state, log_user="", latitude=-1, longitude=-1, row=''):
-        prev_state = self.states[user]
+        #prev_state = self.states[user]
         self.states[user] = state
         if latitude == -1 and user in self.gps and 'latitude' in self.gps[user]:
             latitude = self.gps[user]['latitude']
@@ -191,6 +191,55 @@ class CARWebServer(webnsock.WebServer):
             base='base', globals=globals())
 
         self_app = self
+
+        class QRCode(self.page):
+            path = '/car/qr_call'
+
+            def GET(self):
+                info('QR code')
+                qr_content = web.input(qr_content='').qr_content
+
+                user = web.cookies().get('_car_user')
+                if user is None:
+                    user = 'qr_' + str(uuid4())
+                    web.setcookie('_car_user', user)
+                    info('registered new device with anonymous name: %s' % user)
+                else:
+                    info('user %s called QR code: %s' % (user, qr_content))
+
+                self_app.car_states.users[user] = web.ctx
+                self_app.params = {
+                    'n_users': len(self_app.car_states.users),
+                    'users': list(self_app.car_states.users)
+                }
+                self_app.car_states.gps[user]['qr_node'] = qr_content
+                info(self_app.car_states.gps[user])
+                return self_app._renderer.agro_input(
+                    self_app.params, self_app.get_text, user, self_app.rows, self_app.websocket_url
+                )
+
+            def POST(self):
+                info('QR code')
+                qr_content = web.input(qr_content='').qr_content
+                user = web.cookies().get('_car_user')
+                if user is None:
+                    user = 'qr_' + str(uuid4())
+                    web.setcookie('_car_user', user)
+                    info('registered new device with anonymous name: %s' % user)
+                else:
+                    info('user %s called QR code: %s' % (user, qr_content))
+
+                self_app.car_states.users[user] = web.ctx
+                self_app.params = {
+                    'n_users': len(self_app.car_states.users),
+                    'users': list(self_app.car_states.users)
+                }
+                self_app.car_states.gps[user]['qr_node'] = qr_content
+                info(self_app.car_states.gps[user])
+                self_app.car_states.set_state(user, 'BUTTON')
+                self_app.car_states.send_updated_states()
+                return web.ok()
+
 
         class AMZBtn(self.page):
             path = '/car/button'
