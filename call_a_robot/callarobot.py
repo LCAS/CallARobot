@@ -323,6 +323,10 @@ class CARWebServer(webnsock.WebServer):
 
             def GET(self):
                 user = web.cookies().get('_car_admin')
+                self_app.params = {
+                    'n_users': len(self_app.car_states.users),
+                    'users': list(self_app.car_states.users)
+                }
                 if user is None:
                     return self_app._renderer.login(
                         self_app.params, self_app.get_text, '/car/orders')
@@ -371,15 +375,17 @@ class CARProtocol(webnsock.JsonWSProtocol):
         info('registering interface %s' % str(payload))
         if payload['admin']:
             self.car_states.admin_clients.add(self)
-        if payload['user'] in self.car_states.users:
-            info(
-                'user %s already known' % payload['user']
-            )
         else:
-            info(
-                'new user %s registered' % payload['user']
-            )
-            self.car_states.users[payload['user']] = payload['user']
+            if payload['user'] in self.car_states.users:
+                info(
+                    'user %s already known' % payload['user']
+                )
+            else:
+                info(
+                    'new user %s registered' % payload['user']
+                )
+                self.car_states.users[payload['user']] = payload['user']
+                self.update_state(payload['user'], 'INIT')
         self.log_user = payload['user']
 
     def on_get_states(self, payload):
