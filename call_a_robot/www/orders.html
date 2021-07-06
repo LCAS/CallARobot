@@ -93,6 +93,14 @@ $var params: $:params
                 );
                 $$(id).addClass('btn-warning');
                 break;
+            case 'RECORDING':
+                $$(id).html("$:text('Robot is recording. Click when done.')");
+                $$(id).attr(
+                    'onClick',
+                    "send({'method':'set_state', state: 'INIT','user': \""+user+"\"});"
+                );
+                $$(id).addClass('btn-warning');
+                break;
             case 'INIT':
             default:
                 $$(id).html("$text('idle')");

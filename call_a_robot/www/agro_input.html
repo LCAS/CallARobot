@@ -36,10 +36,10 @@ $var params: $:params
                 );
                 break;
             case 'ARRIVED':
-                $$('#call_btn').html("$:text('Robot is here.<br/>Load it and click here.')");
+                $$('#call_btn').html("$:text('Robot is here.<br/>Click when ready.')");
                 $$('#call_btn').attr(
                     'onClick',
-                    "send({'method':'set_state', 'user': user, 'state': 'LOADED'});"
+                    "send({'method':'set_state', 'user': user, 'state': 'RECORDING'});"
                 );
                 $$('#call_btn').addClass('btn-success');
                 break;
@@ -52,8 +52,13 @@ $var params: $:params
                 );
                 $$('#call_btn').addClass('btn-warning');
                 break;
-            case 'LOADED':
-                $$('#call_btn').html("$:text('Robot will drive off.')");
+            case 'RECORDING':
+                $$('#call_btn').html("$:text('Robot recording now.')");
+                $$('#call_btn').attr(
+                    'onClick',
+                    ""
+                );
+                $$('#call_btn').addClass('btn-success');
                 break;
             case 'DELIVERED':
             case 'INIT':
@@ -207,7 +212,7 @@ $var params: $:params
                 <div class="panel-body">
 
                     <div class="" role="group">
-                                        <button style="font-size: 10vw; min-height: 80vh;"
+                                        <button style=";"
                                                 id="call_btn" 
                                                 onclick="send({
                                                     'method':'call', 
