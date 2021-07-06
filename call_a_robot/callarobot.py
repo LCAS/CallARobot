@@ -333,6 +333,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
                     'new user %s registered' % payload['user']
                 )
                 self.car_states.users[payload['user']] = payload['user']
+                self.update_state(payload['user'], 'INIT')
         self.log_user = payload['user']
 
     def on_get_states(self, payload):
