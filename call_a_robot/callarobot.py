@@ -275,6 +275,10 @@ class CARWebServer(webnsock.WebServer):
 
             def GET(self):
                 user = web.cookies().get('_car_admin')
+                self_app.params = {
+                    'n_users': len(self_app.car_states.users),
+                    'users': list(self_app.car_states.users)
+                }
                 if user is None:
                     return self_app._renderer.login(
                         self_app.params, self_app.get_text, '/car/orders')
