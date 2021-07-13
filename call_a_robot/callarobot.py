@@ -25,6 +25,7 @@ class CARState:
 
     def __init__(self):
         self.states = {}
+        self.tasks = {}
         self.clients = set([])
         self.admin_clients = set([])
         self.users = {}
@@ -106,8 +107,13 @@ class CARState:
             self.states[user] = 'INIT'
         return self.states[user]
 
-    def set_state(self, user, state, log_user="", latitude=-1, longitude=-1, row=''):
-        prev_state = self.states[user]
+    def get_task(self, user):
+        if user not in self.tasks:
+            self.tasks[user] = None
+        return self.tasks[user]
+
+    def set_state(self, user, state, task=None, log_user="", latitude=-1, longitude=-1, row=''):
+        #prev_state = self.states[user]
         self.states[user] = state
         if latitude == -1 and user in self.gps and 'latitude' in self.gps[user]:
             latitude = self.gps[user]['latitude']
@@ -118,7 +124,10 @@ class CARState:
         else:
             longitude = -1
         # self.trigger_webhook()
-        self.log(user, state, log_user, latitude, longitude, row)
+        if task:
+            self.tasks[user] = task
+        else:
+            self.log(user, state, log_user, latitude, longitude, row)
 
     def send_updated_states(self, extra_socket=None):
         if extra_socket is None:
@@ -127,15 +136,16 @@ class CARState:
             addressees = set([extra_socket])
         addressees = addressees.union(self.clients)
         for m in addressees:
-            info('send update to manager %s' % str(m))
+            debug('send update to manager %s' % str(m))
             m.sendJSON({
                 'method': 'update_orders',
-                'states': self.states
+                'states': self.states,
+                'tasks': self.tasks
             })
 
     def send_update_position(self, user, lat, long, acc, ts, row):
         for m in self.admin_clients:
-            info('send pos update  %s' % str(m))
+            debug('send pos update  %s' % str(m))
             m.sendJSON({
                 'method': 'update_position',
                 'user': user,
@@ -320,7 +330,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
     def on_set_state(self, payload):
         info(
             'update state for user %s: %s' %
-            (payload['user'], payload['state']))
+            (payload['user'], payload))
         self.update_state(payload['user'], payload['state'])
 
     def on_register(self, payload):
@@ -345,7 +355,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
         self.send_updated_states()
 
     def on_location_update(self, payload):
-        info('GPS update: ' + str(payload))
+        debug('GPS update: ' + str(payload))
         self.car_states.gps[payload['user']] = {
             'latitude': payload['latitude'],
             'longitude': payload['longitude'],
@@ -372,19 +382,19 @@ class CARProtocol(webnsock.JsonWSProtocol):
     def send_updated_states(self):
         self.car_states.send_updated_states(self)
 
-    def update_state(self, user, state):
+    def update_state(self, user, state, task=None):
         # initialise the user if not already done
         if user not in self.car_states.states:
             self.car_states.get_state(user)
-        self.car_states.set_state(user, state, self.log_user)
+        self.car_states.set_state(user, state, self.log_user, task)
         self.send_updated_states()
 
     def on_ping(self, payload):
         return {'result': True}
 
     def on_call(self, payload):
-        info('user %s called a robot' % payload['user'])
-        self.update_state(payload['user'], 'CALLED')
+        info('user %s called a robot: %s' % (payload['user'], payload))
+        self.update_state(payload['user'], 'CALLED', payload['task'])
 
     def on_cancel(self, payload):
         info('user %s cancelled a robot' % payload['user'])
@@ -394,7 +404,8 @@ class CARProtocol(webnsock.JsonWSProtocol):
         info('user %s requested state' % payload['user'])
         return {
             'method': 'set_state',
-            'state': self.car_states.get_state(payload['user'])
+            'state': self.car_states.get_state(payload['user']),
+            'task': self.car_states.get_task(payload['user'])
         }
 
 
