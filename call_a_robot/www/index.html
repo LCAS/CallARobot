@@ -63,7 +63,7 @@ $var params: $:params
                 $$('#call_btn').html("$text('Call a robot')");
                 $$('#call_btn').attr(
                     'onClick',
-                    "send({'method':'call', 'user': user});"
+                    "send({'method':'call', 'user': user, 'task': 'transportation'});"
                 );
                 $$('#call_btn').addClass('btn-primary');
         }
