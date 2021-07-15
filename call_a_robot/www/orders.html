@@ -93,6 +93,14 @@ $var params: $:params
                 );
                 $$(id).addClass('btn-warning');
                 break;
+            case 'RECORDING':
+                $$(id).html("$:text('Robot is recording. Click when done.')");
+                $$(id).attr(
+                    'onClick',
+                    "send({'method':'set_state', state: 'INIT','user': \""+user+"\"});"
+                );
+                $$(id).addClass('btn-warning');
+                break;
             case 'INIT':
             default:
                 $$(id).html("$text('idle')");
@@ -218,6 +226,7 @@ $var params: $:params
                                 <tr>
                                     <th>User</th>
                                     <th>State</th>
+                                    <th>Task</th>
                                     <th>Action</th>
                                     <th></th>
                                 </tr>
@@ -230,6 +239,9 @@ $var params: $:params
                                         <td class="col-xs-2">$u</td>
                                         <td class="col-xs-2">
                                             <p id="state-$u"></p>
+                                        </td>
+                                        <td class="col-xs-2">
+                                            <p id="task-$u"></p>
                                         </td>
                                         <td class="col-xs-7">
                                             <div class="btn-group2" role="group">

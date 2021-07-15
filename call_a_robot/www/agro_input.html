@@ -1,9 +1,7 @@
-$def with (params, text, user, rows, websocket_url, row)
+$def with (params, text, user, qr_node, websocket_url)
 $var title: CallARobot
 $var jsfiles: 
 $var params: $:params
-
-
 
 
 <script>
@@ -38,10 +36,10 @@ $var params: $:params
                 );
                 break;
             case 'ARRIVED':
-                $$('#call_btn').html("$:text('Robot is here.<br/>Load it and click here.')");
+                $$('#call_btn').html("$:text('Robot is here.<br/>Click when ready.')");
                 $$('#call_btn').attr(
                     'onClick',
-                    "send({'method':'set_state', 'user': user, 'state': 'LOADED'});"
+                    "send({'method':'set_state', 'user': user, 'state': 'RECORDING'});"
                 );
                 $$('#call_btn').addClass('btn-success');
                 break;
@@ -54,8 +52,13 @@ $var params: $:params
                 );
                 $$('#call_btn').addClass('btn-warning');
                 break;
-            case 'LOADED':
-                $$('#call_btn').html("$:text('Robot will drive off.')");
+            case 'RECORDING':
+                $$('#call_btn').html("$:text('Robot recording now.')");
+                $$('#call_btn').attr(
+                    'onClick',
+                    ""
+                );
+                $$('#call_btn').addClass('btn-success');
                 break;
             case 'DELIVERED':
             case 'INIT':
@@ -63,7 +66,7 @@ $var params: $:params
                 $$('#call_btn').html("$text('Call a robot')");
                 $$('#call_btn').attr(
                     'onClick',
-                    "send({'method':'call', 'user': user, 'task': 'transportation'});"
+                    "send({'method':'call', 'user': user});"
                 );
                 $$('#call_btn').addClass('btn-primary');
         }
@@ -118,7 +121,7 @@ $var params: $:params
     latitude = -1;
     longitude = -1;
     accuracy = -1;
-    row='';
+    row='$qr_node';
 
     state = '';
     user = '$user';
@@ -131,14 +134,6 @@ $var params: $:params
             register();
             query_state(user);
 
-            $$('.selection').text($$(".dropdown-menu li a").first().text());
-            $$('.selection').val($$(".dropdown-menu li a").first().text());
-
-            $if len(row) > 0:
-                $$('.selection').text('$row');
-                $$('.selection').val('$row');
-
-            row=$$('.selection').val();
 
             send({
                 'method':'location_update', 
@@ -152,22 +147,6 @@ $var params: $:params
                 // 'velocity' : speed
             });                  
 
-            /*$$.getJSON("https://freegeoip.net/json/", function(res){
-                console.log("estimated from freegeoip " + res.latitude + " " + res.longitude);
-                latitude = res.latitude;
-                longitude = res.longitude;
-                var row = $$('.selection').val();
-                console.log('new location: ' + latitude + ", " + longitude + 'row: ' + row);
-                send({
-                    'method': 'location_update',
-                    'row': row,
-                    'user': user,
-                    'latitude': latitude,
-                    'longitude': longitude
-                });   
-                               
-                
-            });*/
 
 
             {
@@ -187,6 +166,7 @@ $var params: $:params
                     send({
                         'method':'location_update', 
                         'row': row,
+                        'node': node,
                         'user': user,
                         'latitude': latitude,
                         'longitude': longitude,
@@ -214,18 +194,6 @@ $var params: $:params
         };
     }
 
-
-
-
-
-    // getLocation(function(lat, long) {
-    //     console.log(lat + " " + long);    
-    // });
-    /* $$(".dropdown-menu li a").click(function(){
-        $$(this).parents(".dropdown").find('.btn').html($$(this).text() + ' <span class="caret"></span>');
-        $$(this).parents(".dropdown").find('.btn').val($$(this).data('value'));
-    });
- */
 </script>
 <div class="section">
     <div class="container-fluid">
@@ -239,26 +207,12 @@ $var params: $:params
                 </div>
                 <div class="panel-body">
                     <div class="btn-group btn-group-lg btn-group-justified" role="group">
-                        <div class="btn-group btn-group-lg" role="group">
-                            <div class="dropdown">
-                                <button style="font-size: 300%;" class="btn btn-lg btn-success dropdown-toggle" 
-                                        type="button" id="dropdownMenu1" 
-                                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                                    Picking Row: <span class="selection"></span> <span class="caret"></span>
-                                </button>
-                                <ul class="dropdown-menu"  style="width: 100%;" aria-labelledby="dropdownMenu1">
-                                    $for r in rows:
-                                        <li style="font-size: 300%;" ><a href="#">$r</a></li>
-                                        <li role="separator" class="divider"></li>
-                                </ul>
-                            </div>
-                        </div>
                     </div>
                 </div>
                 <div class="panel-body">
 
                     <div class="" role="group">
-                                        <button style="font-size: 10vw; min-height: 80vh;"
+                                        <button style=";"
                                                 id="call_btn" 
                                                 onclick="send({
                                                     'method':'call', 
@@ -321,23 +275,23 @@ $var params: $:params
  -->
 
  <script>
-     $$(".dropdown-menu li a").click(function(){
-        $$(this).parents(".btn-group").find('.selection').text($$(this).text());
-        $$(this).parents(".btn-group").find('.selection').val($$(this).text());
-        row=$$('.selection').val();
-        console.log('new location row: ' + row);
-        send({
-            'method':'location_update', 
-            'row': row,
-            'user': user,
-            'latitude': latitude,
-            'longitude': longitude,
-            'accuracy': accuracy,
-            'rcv_time': Date.now()
-            // 'heading' : heading,
-            // 'velocity' : speed
-        });                  
+    //  $$(".dropdown-menu li a").click(function(){
+    //     $$(this).parents(".btn-group").find('.selection').text($$(this).text());
+    //     $$(this).parents(".btn-group").find('.selection').val($$(this).text());
+    //     row=$$('.selection').val();
+    //     console.log('new location row: ' + row);
+    //     send({
+    //         'method':'location_update', 
+    //         'row': row,
+    //         'user': user,
+    //         'latitude': latitude,
+    //         'longitude': longitude,
+    //         'accuracy': accuracy,
+    //         'rcv_time': Date.now()
+    //         // 'heading' : heading,
+    //         // 'velocity' : speed
+    //     });                  
 
-    });
+    // });
 
 </script>
