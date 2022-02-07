@@ -1,6 +1,6 @@
 $def with (params, text, user, rows, websocket_url, row)
 $var title: CallARobot
-$var jsfiles:
+$var jsfiles: 
 $var params: $:params
 
 
@@ -75,7 +75,7 @@ $var params: $:params
             console.log('old state: ' + state);
             leave_state(state);
             state = new_state;
-            enter_state(state);
+            enter_state(state);        
             console.log('new state: ' + state);
         } else {
             console.log('staying in state: ' + state)
@@ -97,7 +97,7 @@ $var params: $:params
 
     function query_state(u){
         send({
-            'method':'get_state',
+            'method':'get_state', 
             'user': user,
         });
     }
@@ -141,7 +141,7 @@ $var params: $:params
             row=$$('.selection').val();
 
             send({
-                'method':'location_update',
+                'method':'location_update', 
                 'row': row,
                 'user': user,
                 'latitude': latitude,
@@ -150,7 +150,7 @@ $var params: $:params
                 'rcv_time': Date.now()
                 // 'heading' : heading,
                 // 'velocity' : speed
-            });
+            });                  
 
             /*$$.getJSON("https://freegeoip.net/json/", function(res){
                 console.log("estimated from freegeoip " + res.latitude + " " + res.longitude);
@@ -164,9 +164,9 @@ $var params: $:params
                     'user': user,
                     'latitude': latitude,
                     'longitude': longitude
-                });
-
-
+                });   
+                               
+                
             });*/
 
 
@@ -185,7 +185,7 @@ $var params: $:params
                     var row = $$('.selection').val();
                     console.log('new location: ' + latitude + ", " + longitude + 'row: ' + row);
                     send({
-                        'method':'location_update',
+                        'method':'location_update', 
                         'row': row,
                         'user': user,
                         'latitude': latitude,
@@ -194,7 +194,7 @@ $var params: $:params
                         'rcv_time': tm.getTime()
                         // 'heading' : heading,
                         // 'velocity' : speed
-                    });
+                    });                  
                 }
 
                 function loc_error(err) {
@@ -219,7 +219,7 @@ $var params: $:params
 
 
     // getLocation(function(lat, long) {
-    //     console.log(lat + " " + long);
+    //     console.log(lat + " " + long);    
     // });
     /* $$(".dropdown-menu li a").click(function(){
         $$(this).parents(".dropdown").find('.btn').html($$(this).text() + ' <span class="caret"></span>');
@@ -227,98 +227,53 @@ $var params: $:params
     });
  */
 </script>
-<div class="section">
+<div style="height:100vh; padding-top:15px; padding-bottom:15px" class="section">
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-12">
                 <div  class="panel panel-primary">
                     <div class="panel-heading">
-                    <form action="#" method="post">
-                        <h3 class="panel-title">User: $user  <button class="btn btn-warning" type="submit">logout</button></h3>
-                    </form>
-                </div>
-                <div class="panel-body">
-                    <div class="btn-group btn-group-lg btn-group-justified" role="group">
-                        <div class="btn-group btn-group-lg" role="group">
-                            <div class="dropdown">
-                                <button style="font-size: 300%;" class="btn btn-lg btn-success dropdown-toggle"
-                                        type="button" id="dropdownMenu1"
-                                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                                    Picking Row: <span class="selection"></span> <span class="caret"></span>
-                                </button>
-                                <ul class="dropdown-menu"  style="width: 100%;" aria-labelledby="dropdownMenu1">
-                                    $for r in rows:
-                                        <li style="font-size: 300%;" ><a href="#">$r</a></li>
-                                        <li role="separator" class="divider"></li>
-                                </ul>
+                        <form action="#" method="post">
+                            <h3 style="font-size: 500%;" class="panel-title">User: $user  <button style="font-size: 75%;" class="btn btn-warning" type="submit">logout</button></h3>
+                        </form>
+                    </div>
+
+                    <div class="panel-body">
+                        <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
+                            <div class="btn-group btn-group-lg" role="group">
+                                <div class="dropdown">
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-success dropdown-toggle"
+                                            type="button" id="dropdownMenu1"
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                        Picking Row: <span class="selection"></span> <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu"  style="width: 100%;" aria-labelledby="dropdownMenu1">
+                                        $for r in rows:
+                                            <li style="font-size: 300%;" ><a href="#">$r</a></li>
+                                            <li role="separator" class="divider"></li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="panel-body">
-
-                    <div class="" role="group">
-                                        <button style="font-size: 10vw; min-height: 80vh;"
-                                                id="call_btn"
-                                                onclick="send({
-                                                    'method':'call',
-                                                    'user': user,
-                                                    'row': row,
-                                                });"
-                                                class="btn btn-block btn-lg">$text('call a robot')</button>
-                                </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!--
-<div class="section">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-12">
-                <div class="panel panel-primary">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">Robot Status</h3>
-                    </div>
                     <div class="panel-body">
-                        <table class="table table-condensed table-striped">
-                            <tbody>
-                                <tr>
-                                    <td class="col-md-3">$text('Assigned')</td>
-                                    <td class="col-md-9"><p id="assigned_robot"></p></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="" role="group">
+                            <button style="font-size: 10vw; min-height: 80vh;"
+                                    id="call_btn"
+                                    onclick="send({
+                                        'method':'call',
+                                        'user': user,
+                                        'row': row,
+                                    });"
+                                    class="btn btn-block btn-lg">$text('call a robot')
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 </div>
-
-
-<div class="modal fade" id="modal_dlg">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        <h4 class="modal-title">Notfall-Progamm aktivieren?</h4>
-      </div>
-      <div class="modal-body">
-        <p>Soll das Notfall-Programm aktiviert werden? Der Roboter wird zur naechsten Sicherheitszone fahren und sich dort abschalten. Sollte er dort im Weg sein, kann er einfach weg geschoben werden. Bitte informieren Sie nach der Aktivierung das Roboter-Admin Team, damit zu einem späteren Zeitpunkt der Betrieb wieder aufgenommen werden kann.</p>
-      </div>
-      <div class="modal-footer">
-        <button onclick="emergency_stop();" type="button" class="btn btn-danger btn-default" data-dismiss="modal">Notfall auslösen</button>
-        <button type="button" class="btn" data-dismiss="modal">Zurück zum Normalbetrieb</button>
-      </div>
-    </div>
-  </div>
-</div>
- -->
 
  <script>
      $$(".dropdown-menu li a").click(function(){
@@ -327,7 +282,7 @@ $var params: $:params
         row=$$('.selection').val();
         console.log('new location row: ' + row);
         send({
-            'method':'location_update',
+            'method':'location_update', 
             'row': row,
             'user': user,
             'latitude': latitude,
@@ -336,7 +291,7 @@ $var params: $:params
             'rcv_time': Date.now()
             // 'heading' : heading,
             // 'velocity' : speed
-        });
+        });                  
 
     });
 

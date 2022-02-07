@@ -15,6 +15,7 @@ from json import dumps
 from threading import Condition
 from uuid import uuid4
 from os import getenv
+from pprint import pprint
 
 basicConfig(level=INFO)
 
@@ -46,15 +47,6 @@ class CARState:
         self.log_lock = Lock()
 
         self.log_uid = defaultdict(int)
-
-    # def trigger_webhook(self, url='http://127.0.0.1:8127/car/webhook_receiver'):
-    #     try:
-    #         requests.post(url, data=dumps({
-    #             'states': self.states,
-    #             'gps': self.gps
-    #             }))
-    #     except Exception as e:
-    #         warn('trigger_webhook failed: %s' % str(e))
 
     def log(self, user, state='NONE', log_user="", latitude=-1, longitude=-1, row=''):
         dt = datetime.now()
@@ -155,7 +147,7 @@ car_states = CARState()
 class CARWebServer(webnsock.WebServer):
 
     def __init__(self):
-
+        self.ns = "/rasberry"
         self.car_states = car_states
         self.is_running = True
         self.websocket_url = getenv('WEBSOCKET_URL', '')
@@ -178,8 +170,12 @@ class CARWebServer(webnsock.WebServer):
                 path.dirname(__file__),
                 'www/static'
             ),
-            '/car/'
+            self.ns+'/'
         )
+
+        print("\n\n\n")
+        print(path.join(path.dirname(__file__),'www/static'))
+        print("\n\n\n")
 
         self._renderer = web.template.render(
             path.realpath(
@@ -189,6 +185,12 @@ class CARWebServer(webnsock.WebServer):
                 )
             ),
             base='base', globals=globals())
+
+        self.map = {'1': {'1':['1','2'], '2':['1','2'], '3':['1','2'], '4':['1','2'], '5':['1','2']},
+                    '2': {'6':['1','2'], '7':['1','2'], '8':['1','2'], '9':['1','2'],'10':['1','2']}}
+        self.robots = {'short': {'logistics': ['thovald_014']},
+                       'tall': {'uv_treatment': ['thorvald_002_tall', 'thorvald_030'],
+                                'data_gathering': ['thorvald_002_tall']}}
 
         self_app = self
 
@@ -221,19 +223,15 @@ class CARWebServer(webnsock.WebServer):
                 web.header('Content-transfer-encoding', 'binary')
                 return open(self_app.car_states.log_filename, 'rb').read()
 
-        class Redir(self.page):
-            path = '/car'
-            def GET(self):
-                return web.seeother('/car/')
-
-        class Index(self.page):
-            path = '/car/'
+        class CallARobot(self.page):
+            path = self_app.ns+'/car/'
 
             def GET(self):
+                print("\n\n\nGETTING CALLAROBOT")
                 user = web.cookies().get('_car_user')
                 if user is None:
                     return self_app._renderer.login(
-                        self_app.params, self_app.get_text, '/car/')
+                        self_app.params, self_app.get_text, self_app.ns+'/car/', "CallARobot")
                 else:
                     self_app.car_states.users[user] = web.ctx
                     self_app.params = {
@@ -245,7 +243,8 @@ class CARWebServer(webnsock.WebServer):
                     else:
                         row = ''
 
-                    return self_app._renderer.index(
+                    print([self_app.params, self_app.get_text, user, self_app.rows, self_app.websocket_url, row])
+                    return self_app._renderer.callarobot(
                         self_app.params, self_app.get_text, user, self_app.rows, self_app.websocket_url, row)
 
             def POST(self):
@@ -257,7 +256,46 @@ class CARWebServer(webnsock.WebServer):
                     web.setcookie('_car_user', user)
                 else:
                     web.setcookie('_car_user', '', -1)
-                return web.seeother('/car/')
+                return web.seeother(self_app.ns+'/car/')
+
+        class SendARobot(self.page):
+            path = self_app.ns+'/sar/'
+
+            def GET(self):
+                print("\n\n\nGETTING SENDAROBOT")
+                user = web.cookies().get('_sar_user')
+                print("user: " + str(user))
+                if user is None:
+                    return self_app._renderer.login(
+                        self_app.params, self_app.get_text, self_app.ns+'/sar/', "SendARobot")
+                else:
+                    self_app.car_states.users[user] = web.ctx
+                    self_app.params = {
+                        'n_users': len(self_app.car_states.users),
+                        'users': list(self_app.car_states.users)
+                    }
+                    if 'row' in self_app.car_states.gps[user]:
+                        row = self_app.car_states.gps[user]['row']
+                    else:
+                        row = ''
+
+                    web.setcookie('_rasberry_topomap', self_app.map)
+                    web.setcookie('_robots', self_app.robots)
+
+                    return self_app._renderer.sendarobot(
+                            self_app.params, self_app.get_text, user, self_app.websocket_url)
+
+
+            def POST(self):
+                user_data = web.input(username='')
+
+                user = user_data.username
+                if user is not '':
+                    info('login as %s' % user_data)
+                    web.setcookie('_sar_user', user)
+                else:
+                    web.setcookie('_sar_user', '', -1)
+                return web.seeother(self_app.ns+'/sar/')
 
         class Orders(self.page):
             path = '/car/orders'
@@ -282,6 +320,30 @@ class CARWebServer(webnsock.WebServer):
                     return self_app._renderer.orders(
                         self_app.params, self_app.get_text,
                         self_app.websocket_url, self_app.gmaps_api)
+
+
+
+
+        class RedirCAR(self.page):
+            path = self_app.ns+'/car'
+            def GET(self): return web.seeother(self_app.ns+'/car/')
+        class RedirSAR(self.page):
+            path = self_app.ns+'/sar'
+            def GET(self): return web.seeother(self_app.ns+'/sar/')
+
+        class RedirCARslash(self.page):
+            path = self_app.ns+'/car/'
+            def GET(self): return web.seeother(self_app.ns+'/car/')
+        class RedirSARslash(self.page):
+            path = self_app.ns+'/sar/'
+            def GET(self): return web.seeother(self_app.ns+'/sar/')
+
+        class RedirCARslashHash(self.page):
+            path = self_app.ns + '/car/#'
+            def GET(self): return web.seeother(self_app.ns + '/car/')
+        class RedirSARslashHash(self.page):
+            path = self_app.ns + '/sar/#'
+            def GET(self): return web.seeother(self_app.ns + '/sar/')
 
     def get_text(self, text):
         return text

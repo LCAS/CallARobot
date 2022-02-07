@@ -1,36 +1,27 @@
-$def with (params, text, url)
-$var title: CallARobot
+$def with (params, text, url, login_title)
+$var title: $:login_title
 $var jsfiles: 
 $var params: $:params
 
+<script></script>
 
-
-
-<script>
-
-
-
-</script>
-
-<div class="section">
-    <div class="container">
+<div style="padding-top:15px" class="section">
+    <div class="container-fluid">
         <div class="row">
             <div class="col-md-12">
-                <div  class="panel panel-primary">
+                <div class="panel panel-primary">
                     <div class="panel-heading">
-                        <h3 class="panel-title">$text('Login')</h3>
+                        <h3 style="font-size: 500%;" class="panel-title">$text('Connect to: '+login_title)</h3>
                     </div>
-                    
-                    <div class="panel-body">
-                    <form action="$url" method="post" accept-charset="utf-8">
-                        <div class="form-group">
-                            <label for="username">Username</label>
-                            <input pattern="^[a-zA-Z0-9]+$$" type="text" class="form-control" name="username" id="username" aria-describedby="emailHelp" placeholder="Enter username">
-                            <small id="emailHelp" class="form-text text-muted">enter a name without spaces.</small>
-                        </div>
-                        <button class="btn btn-block btn-success" type="submit">Login</button>
-
-                    </form>
+                    <div class="panel-body" style="padding-top:2%; padding-bottom:2%;">
+                        <form action="$url" method="post" accept-charset="utf-8">
+                            <div class="form-group" style="padding-bottom:5%;">
+                                <label style="font-size: 500%;" for="username">Enter a username:</label>
+                                <h3 style="font-size: 250%" id="emailHelp" class="form-text text-muted">(only use letters and numbers)</h3>
+                                <input pattern="^[a-zA-Z0-9]+$$" type="text" class="form-control" name="username" id="username" aria-describedby="emailHelp" placeholder="input" style="font-size: 500%; height: 100%; padding-top:2%; padding-bottom:2%;" >
+                            </div>
+                            <button style="padding-top:5%; padding-bottom:5%; font-size: 500%;" class="btn btn-block btn-success" type="submit">Login</button>
+                        </form>
                     </div>
                 </div>
             </div>
