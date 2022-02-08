@@ -17,9 +17,9 @@ from uuid import uuid4
 from os import getenv
 from pprint import pprint
 
-basicConfig(level=INFO)
-
 import requests
+
+basicConfig(level=INFO)
 
 
 class CARState:
@@ -136,8 +136,8 @@ class CARState:
                 'accu': acc,
                 'timestamp': ts,
                 'row': row
-#                'heading': heading,
-#                'velocity':velocity
+                # 'heading': heading,
+                # 'velocity':velocity
             })
 
 
@@ -147,48 +147,25 @@ car_states = CARState()
 class CARWebServer(webnsock.WebServer):
 
     def __init__(self):
-        self.ns = "/rasberry"
         self.car_states = car_states
         self.is_running = True
-        self.websocket_url = getenv('WEBSOCKET_URL', '')
+        self.websocket_url = getenv('WEBSOCKET_URL', '')  # 'wss://lcas.lincoln.ac.uk/car/ws'
         self.gmaps_api = getenv('GMAPS_API', 'XXX')
-        self.rows_str = getenv(
-            'CAR_ROWS', 
-            'A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6')
-        # 'wss://lcas.lincoln.ac.uk/car/ws'
-
+        self.rows_str = getenv('CAR_ROWS', 'A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6')
         self.rows = self.rows_str.split(' ')
+        self.params = {'n_users': len(self.car_states.users),
+                       'users': list(self.car_states.users)}
 
-        self.params = {
-            'n_users': len(self.car_states.users),
-            'users': list(self.car_states.users)
-        }
+        self.ns = "/rasberry"
+        ws_url = self.ns+'/'
+        fp = path.dirname(__file__)
+        webnsock.WebServer.__init__(self, add_static=path.join(fp, 'www/static'), static_prefix=ws_url)
+        print("ws_url = %s\n\n\n" % ws_url)
+        self._renderer = web.template.render(path.realpath(path.join(fp, 'www')), base='base', globals=globals())
 
-        webnsock.WebServer.__init__(
-            self,
-            path.join(
-                path.dirname(__file__),
-                'www/static'
-            ),
-            self.ns+'/'
-        )
-
-        print("\n\n\n")
-        print(path.join(path.dirname(__file__),'www/static'))
-        print("\n\n\n")
-
-        self._renderer = web.template.render(
-            path.realpath(
-                path.join(
-                    path.dirname(__file__),
-                    'www'
-                )
-            ),
-            base='base', globals=globals())
-
-        self.map = {'1': {'1':['1','2'], '2':['1','2'], '3':['1','2'], '4':['1','2'], '5':['1','2']},
-                    '2': {'6':['1','2'], '7':['1','2'], '8':['1','2'], '9':['1','2'],'10':['1','2']}}
-        self.robots = {'short': {'logistics': ['thovald_014']},
+        self.map = {'1': {'1': ['1', '2'], '2': ['1', '2'], '3': ['1', '2'], '4': ['1', '2'],  '5': ['1', '2']},
+                    '2': {'6': ['1', '2'], '7': ['1', '2'], '8': ['1', '2'], '9': ['1', '2'], '10': ['1', '2']}}
+        self.robots = {'short': {'logistics': ['thorvald_014']},
                        'tall': {'uv_treatment': ['thorvald_002_tall', 'thorvald_030'],
                                 'data_gathering': ['thorvald_002_tall']}}
 
@@ -243,7 +220,6 @@ class CARWebServer(webnsock.WebServer):
                     else:
                         row = ''
 
-                    print([self_app.params, self_app.get_text, user, self_app.rows, self_app.websocket_url, row])
                     return self_app._renderer.callarobot(
                         self_app.params, self_app.get_text, user, self_app.rows, self_app.websocket_url, row)
 
@@ -285,7 +261,6 @@ class CARWebServer(webnsock.WebServer):
                     return self_app._renderer.sendarobot(
                             self_app.params, self_app.get_text, user, self_app.websocket_url)
 
-
             def POST(self):
                 user_data = web.input(username='')
 
@@ -313,10 +288,6 @@ class CARWebServer(webnsock.WebServer):
 
             def GET(self):
                 user = web.cookies().get('_car_admin')
-                self_app.params = {
-                    'n_users': len(self_app.car_states.users),
-                    'users': list(self_app.car_states.users)
-                }
                 if user is None:
                     return self_app._renderer.login(
                         self_app.params, self_app.get_text, '/car/orders')
@@ -324,8 +295,6 @@ class CARWebServer(webnsock.WebServer):
                     return self_app._renderer.orders(
                         self_app.params, self_app.get_text,
                         self_app.websocket_url, self_app.gmaps_api)
-
-
 
 
         class RedirCAR(self.page):
@@ -358,7 +327,6 @@ class CARWebServer(webnsock.WebServer):
         webnsock.WebServer.stop(self)
 
 
-
 class CARProtocol(webnsock.JsonWSProtocol):
 
     def __init__(self):
@@ -380,26 +348,14 @@ class CARProtocol(webnsock.JsonWSProtocol):
             self.car_states.admin_clients.remove(self)
 
     def on_set_state(self, payload):
-        info(
-            'update state for user %s: %s' %
-            (payload['user'], payload['state']))
+        info('update state for user %s: %s' %
+             (payload['user'], payload['state']))
         self.update_state(payload['user'], payload['state'])
 
     def on_register(self, payload):
-        info('registering interface %s' % str(payload))
+        info('registering management interface %s' % str(self))
         if payload['admin']:
             self.car_states.admin_clients.add(self)
-        else:
-            if payload['user'] in self.car_states.users:
-                info(
-                    'user %s already known' % payload['user']
-                )
-            else:
-                info(
-                    'new user %s registered' % payload['user']
-                )
-                self.car_states.users[payload['user']] = payload['user']
-                self.update_state(payload['user'], 'INIT')
         self.log_user = payload['user']
 
     def on_get_states(self, payload):
@@ -427,8 +383,8 @@ class CARProtocol(webnsock.JsonWSProtocol):
             payload['accuracy'],
             payload['rcv_time'],
             payload['row']
-#            payload['heading'],
-#            payload['velocity']
+            # payload['heading'],
+            # payload['velocity']
             )
 
     def send_updated_states(self):

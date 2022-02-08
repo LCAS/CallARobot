@@ -10,8 +10,8 @@ from logging import exception, warning, info, basicConfig, INFO
 
 basicConfig(level=INFO)
 
-# Install requirements: pip install websocket-client (no longer needed as included locally, still needs to install 'six')
 
+# Install requirements: pip install websocket-client (no longer needed as included locally, still install 'six')
 class WSClient(Thread):
 
     def __init__(self, cb=None):
@@ -19,7 +19,7 @@ class WSClient(Thread):
         self.websocket_url = getenv('WEBSOCKET_URL', 'ws://localhost:8128/')
         self.ws = None
         self.daemon = True
-        self.callback  = cb
+        self.callback = cb
         websocket.enableTrace(False)
         self.connected = False
 
@@ -31,7 +31,7 @@ class WSClient(Thread):
 
     def on_error(self, error):
         self.connected = False
-        print error
+        print(error)
 
     def on_close(self):
         self.connected = False
@@ -42,22 +42,21 @@ class WSClient(Thread):
         info("### open ###")
         # register as admin to call-a-robot
         self.ws.send(dumps({
-            'method':'register',
+            'method': 'register',
             'admin': True,
             'user': 'admin'
         }))
         self.ws.send(dumps({
-            'method':'get_states'
+            'method': 'get_states'
         }))
 
     def set_state(self, user, state):
-	if self.ws:
+        if self.ws:
             self.ws.send(dumps({
-                'method':'set_state',
+                'method': 'set_state',
                 'state': state,
                 'user': user
             }))
-
 
     def run(self):
         while True:
@@ -65,10 +64,11 @@ class WSClient(Thread):
             if not self.connected:
                 info("attempt connection to %s" % self.websocket_url)
                 self.ws = websocket.WebSocketApp(self.websocket_url,
-                                          on_message = self.on_message,
-                                          on_error = self.on_error,
-                                          on_close = self.on_close)
-                self.ws.on_open = self.on_open
+                                                 on_message=self.on_message,
+                                                 on_error=self.on_error,
+                                                 on_close=self.on_close,
+                                                 on_open=self.on_open)
+                # self.ws.on_open = self.on_open
                 self.ws.run_forever()
 
     def spin(self):
@@ -113,17 +113,14 @@ if __name__ == "__main__":
             ws_client.start()
             rospy.spin()
         except Exception as e:
-            print "ROS exception %s" % str(e)
+            print("ROS exception %s" % str(e))
             exception('no ROS, running fallback %s' % str(e))
             client = WSClient(callback)
             client.start()
             sleep(5)
             # after 5 seconds test state setting
-            client.set_state('marc','INIT')
+            client.set_state('marc', 'INIT')
             client.spin()
 
 
     ros_main()
-
-
-
