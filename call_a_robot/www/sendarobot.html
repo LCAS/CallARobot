@@ -4,124 +4,100 @@ $var jsfiles:
 $var params: $:params
 
 
+<!--
+"send({'method':'set_state', 'user': user, 'state': 'LOADED'});"
+The method part of the send function calls (CARProtocol.on_'method') from callarobot.py
+-->
+
 
 
 <script>
-    function leave_state(s) {
-        $$('#call_btn').removeAttr('onclick');
-        $$('#call_btn').prop('disabled', true);
-        $$('#call_btn').html("");
-        $$('#call_btn').removeClass('btn-success btn-danger btn-warning btn-default btn-primary');
-        switch(s) {
-            case 'ACCEPTED':
-            case 'BUTTON':
-            case 'ARRIVED':
-            case 'LOADED':
-            case 'DELIVERED':
-            case 'CALLED':
-            case 'INIT':
-            default:
-                break;
-        }
 
-    }
-
-    function enter_state(s) {
-        $$('#call_btn').prop('disabled', false);
-        switch(s) {
-            case 'ACCEPT':
-                $$('#call_btn').html("$:text('Robot is on its way.<br/> Click to cancel')");
-                $$('#call_btn').attr(
-                    'onClick',
-                    "send({'method':'cancel', 'user': user});"
-                );
-                break;
-            case 'ARRIVED':
-                $$('#call_btn').html("$:text('Robot is here.<br/>Load it and click here.')");
-                $$('#call_btn').attr(
-                    'onClick',
-                    "send({'method':'set_state', 'user': user, 'state': 'LOADED'});"
-                );
-                $$('#call_btn').addClass('btn-success');
-                break;
-            case 'BUTTON':
-            case 'CALLED':
-                $$('#call_btn').html("$:text('Robot is called.<br/> Click to cancel')");
-                $$('#call_btn').attr(
-                    'onClick',
-                    "send({'method':'cancel', 'user': user});"
-                );
-                $$('#call_btn').addClass('btn-warning');
-                break;
-            case 'LOADED':
-                $$('#call_btn').html("$:text('Robot will drive off.')");
-                break;
-            case 'DELIVERED':
-            case 'INIT':
-            default:
-                $$('#call_btn').html("$text('Call a robot')");
-                $$('#call_btn').attr(
-                    'onClick',
-                    "send({'method':'call', 'user': user});"
-                );
-                $$('#call_btn').addClass('btn-primary');
-        }
-
-    }
-
-    function transition(new_state) {
-        if (new_state != state) {
-            console.log('old state: ' + state);
-            leave_state(state);
-            state = new_state;
-            enter_state(state);
-            console.log('new state: ' + state);
-        } else {
-            console.log('staying in state: ' + state)
-        }
-    }
-
-    function _update_orders(data) {
-        var states = data['states'];
-        for(var key in states) {
-            if (key == user) {
-                transition(states[key]);
+    function update_begin_button(s) {
+        if (s == 'sar_BEGIN' || s == 'INIT' || s == 'sar_INIT') {
+            if (tunnel_id=="select" || task_type=="select") {
+                $$('#main_btn').html('Select a tunnel <br/>and task type');
+                $$('#main_btn').prop('disabled', true);
+                $$('#main_btn').removeClass('btn-primary');
+            } else {
+                $$('#main_btn').html('Make Request');
+                $$('#main_btn').attr('onClick', "send({'method':'sar_begin_task', 'user': user, 'tunnel':tunnel_id, 'row':row_id, 'edge':edge_id, 'task':task_type, 'robot':robot_id});");
+                $$('#main_btn').addClass('btn-primary');
+                $$('#main_btn').prop('disabled', false);
             }
         }
     }
 
-    function _set_state(s) {
-        transition(s['state']);
+    function move_state(s) {
+        console.log("moving from " + state + " to " + s)
+        $$('#main_btn').html("");
+        $$('#main_btn').prop('disabled', false);
+        $$('#main_btn').removeAttr('onclick');
+        $$('#main_btn').removeClass('btn-success btn-danger btn-warning btn-default btn-primary');
+
+        let cancel = false
+        switch(s) {
+            case 'INIT':
+            case 'sar_INIT':
+                $$('#main_btn').html('Select a tunnel <br/>and task type.');
+                $$('#main_btn').prop('disabled', true);
+                activateRequiredDropdowns(); //we want to re-enable the dropdowns
+                update_begin_button(s);
+                break;
+            case 'sar_BEGUN':
+                $$('#main_btn').html('Awaiting server<br/>confirmation.'); cancel = true;
+                $$('#main_btn').addClass('btn-warning');
+                disableDropdowns();
+                break;
+                //^ up to here works...
+
+            case 'sar_AWAIT_START':
+                $$('#main_btn').html('Robot moving to<br/>start location.'); cancel = true;
+                break;
+            case 'sar_AWAIT_TASK_COMPLETION':
+                $$('#main_btn').html('Robot has begun<br/>'+task_type.replace('_',' ')+'.'); cancel = true;
+                break;
+            case 'sar_COMPLETE':
+                $$('#main_btn').html('All task stages<br/>are complete.<br/><br/>Click to reset.');
+                $$('#main_btn').addClass('btn-success');
+                $$('#main_btn').attr('onClick', "send({'method':'sar_init', 'user': user});");
+                break;
+            case 'sar_CANCEL':
+                $$('#main_btn').html('TASK CANCELLED<br/>Click to reset.');
+                $$('#main_btn').addClass('btn-danger');
+                $$('#main_btn').attr('onClick', "send({'method':'sar_init', 'user': user});");
+                disableDropdowns();
+                break;
+            default:
+                $$('#main_btn').html("STATE Error");
+                $$('#main_btn').addClass('btn-dark');
+                break;
+        }
+        if (cancel) {
+            $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>Click to cancel.')
+            $$('#main_btn').attr('onClick', "send({'method':'sar_cancel_task', 'user': user});");
+        }
     }
 
-    function query_state(u){
-        send({
-            'method':'get_state',
-            'user': user,
-        });
+    function transition(new_state) {
+        if (new_state != state) { move_state(new_state); }
+        state = new_state;
     }
 
-    function _update_position(data) {
+    function _update_orders(data) {
+        var states = data['states'];
+        for(var key in states) { if (key == user) { transition(states[key]); } }
     }
 
-    function register() {
-        send({
-            'method':'register',
-            'admin': false,
-            'user': '$user'
-        });
-        console.log("registered!");
-    }
+    function register() { send({ 'method':'register', 'admin': false, 'user': '$user' }); console.log("registered!"); }
+
+    function query_state(u){ send({ 'method':'get_state', 'user': user, }); }
+    function _set_state(s) { transition(s['state']); }
+
 
     // globals
-    latitude = -1;
-    longitude = -1;
-    accuracy = -1;
-    row='';
-
     state = '';
     user = '$user';
-
 
     document.onready = function() {
         webnsock_init('$websocket_url');
@@ -130,30 +106,10 @@ $var params: $:params
             console.log("Connected!");
             register();
             query_state(user);
-
-            send({
-                'method':'location_update',
-                'row': row,
-                'user': user,
-                'latitude': latitude,
-                'longitude': longitude,
-                'accuracy': accuracy,
-                'rcv_time': Date.now()
-                // 'heading' : heading,
-                // 'velocity' : speed
-            });
         };
     }
-
-
-
-
-    /* $$(".dropdown-menu li a").click(function(){
-        $$(this).parents(".dropdown").find('.btn').html($$(this).text() + ' <span class="caret"></span>');
-        $$(this).parents(".dropdown").find('.btn').val($$(this).data('value'));
-    });
- */
 </script>
+
 <div style="padding-top:15px" class="section">
     <div class="container-fluid">
         <div class="row">
@@ -169,12 +125,12 @@ $var params: $:params
                         <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
                             <div class="btn-group btn-group-lg" role="group">
                                 <div class="dropdown">
-                                    <button style="font-size: 500%;" class="btn btn-lg btn-success dropdown-toggle"
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-success dropdown-toggle tunnel_sb"
                                             type="button" id="dropdownMenu1"
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                                         Tunnel: <span class="tunnel_selection"></span> <span class="caret"></span>
                                     </button>
-                                    <ul class="dropdown-menu tunnel-dropdown-menu" style="width: 100%;" aria-labelledby="dropdownMenu1">
+                                    <ul class="dropdown-menu tunnel-ddm" style="width: 100%;" aria-labelledby="dropdownMenu1">
                                     </ul>
                                 </div>
                             </div>
@@ -182,12 +138,12 @@ $var params: $:params
                         <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
                             <div class="btn-group btn-group-lg" role="group">
                                 <div class="dropdown">
-                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-success dropdown-toggle row_selection_btn"
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-success dropdown-toggle row_sb"
                                             type="button" id="dropdownMenu2" disabled=true
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                                         Row: <span class="row_selection"></span> <span class="caret"></span>
                                     </button>
-                                    <ul class="dropdown-menu row-dropdown-menu" style="width: 100%;" aria-labelledby="dropdownMenu2">
+                                    <ul class="dropdown-menu row-ddm" style="width: 100%;" aria-labelledby="dropdownMenu2">
                                     </ul>
                                 </div>
                             </div>
@@ -195,12 +151,12 @@ $var params: $:params
                         <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
                             <div class="btn-group btn-group-lg" role="group">
                                 <div class="dropdown">
-                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-success dropdown-toggle edge_selection_btn"
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-success dropdown-toggle edge_sb"
                                             type="button" id="dropdownMenu3" disabled=true
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                                         Edge: <span class="edge_selection"></span> <span class="caret"></span>
                                     </button>
-                                    <ul class="dropdown-menu edge-dropdown-menu" style="width: 100%;" aria-labelledby="dropdownMenu3">
+                                    <ul class="dropdown-menu edge-ddm" style="width: 100%;" aria-labelledby="dropdownMenu3">
                                     </ul>
                                 </div>
                             </div>
@@ -211,12 +167,12 @@ $var params: $:params
                         <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
                             <div class="btn-group btn-group-lg" role="group">
                                 <div class="dropdown">
-                                    <button style="font-size: 500%;" class="btn btn-lg btn-warning dropdown-toggle"
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-warning dropdown-toggle task_sb"
                                             type="button" id="dropdownMenu4"
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                                         Select Task: <span class="task_selection"></span> <span class="caret"></span>
                                     </button>
-                                    <ul class="dropdown-menu task-dropdown-menu" style="width: 100%;" aria-labelledby="dropdownMenu4">
+                                    <ul class="dropdown-menu task-ddm" style="width: 100%;" aria-labelledby="dropdownMenu4">
                                     </ul>
                                 </div>
                             </div>
@@ -224,12 +180,12 @@ $var params: $:params
                         <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
                             <div class="btn-group btn-group-lg" role="group">
                                 <div class="dropdown">
-                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-warning dropdown-toggle robot_selection_btn"
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-warning dropdown-toggle robot_sb"
                                             type="button" id="dropdownMenu5" disabled=true
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                                         Select Robot:<br> <span class="robot_selection"></span> <span class="caret"></span>
                                     </button>
-                                    <ul class="dropdown-menu robot-dropdown-menu" style="width: 100%;" aria-labelledby="dropdownMenu5">
+                                    <ul class="dropdown-menu robot-ddm" style="width: 100%;" aria-labelledby="dropdownMenu5">
                                     </ul>
                                 </div>
                             </div>
@@ -239,13 +195,19 @@ $var params: $:params
                     <div class="panel-body">
                         <div class="" role="group">
                             <button style="font-size: 10vw; min-height: 35vh;"
-                                    id="call_btn"
-                                    onclick="send({
-                                        'method':'call',
-                                        'user': user,
-                                        'row': row,
-                                    });"
-                                    class="btn btn-block btn-lg">$text('Begin Task')</button>
+                                    id="main_btn"
+                                    onclick="send({ 'method':'sar_begin_task', 'user': user, 'row': row });"
+                                    disabled=true
+                                    class="btn btn-block btn-lg">Initialising...</button>
+                            </div>
+                    </div>
+
+                    <div class="panel-body">
+                        <div role="group">
+                            <button style="font-size: 10vw; min-height: 10vh;"
+                                    id="emergency_btn"
+                                    onclick="send({ 'method':'sar_emergency_stop', 'user': user });"
+                                    class="btn btn-block btn-lg btn-danger">Emergency Stop</button>
                             </div>
                     </div>
                 </div>
@@ -260,10 +222,13 @@ $var params: $:params
 <script>
 var map
 var robots
-var task_type
+
 var tunnel_id
 var row_id
 var edge_id
+
+var task_type
+var robot_id
 
 function defaultVariables() {
     tunnel_id = 'select'
@@ -272,12 +237,40 @@ function defaultVariables() {
     map = getRasberryTopoMap()
     load_tunnels()
 
-
     task_type = 'select'
+    robot_id = 'closest'
     robots = getRobots()
     load_tasks()
 
     console.log("default initialisation complete")
+}
+
+
+/*
+var disables = {'.tunnel_sb':false, '.row_sb':false, '.edge_sb':false, '.task_sb':false, '.robot_sb':false}
+function disable_task_options (b) {
+    console.log("Toggling task options while task is active.")
+    $$.each(disables, function(k, v) {
+        if (b) { disables[k] = $$(k+':disabled').val() == ''; $$(k).prop('disabled', true);
+        } else { $$(k).prop('disabled', v); }
+    });
+    console.log(disables)
+}*/
+
+function activateRequiredDropdowns() {
+    $$('.tunnel_sb').prop("disabled", false)
+    $$('.row_sb').prop("disabled", $$('.tunnel_selection').val() == 'select' || $$('.tunnel_selection').val() == '')
+    $$('.edge_sb').prop("disabled", $$('.row_selection').val() == 'all' || $$('.row_selection').val() == '')
+    $$('.task_sb').prop("disabled", false)
+    $$('.robot_sb').prop("disabled", $$('.task_selection').val() == 'select' || $$('.task_selection').val() == '')
+}
+
+function disableDropdowns() {
+    $$('.tunnel_sb').prop("disabled", true)
+    $$('.row_sb').prop("disabled", true)
+    $$('.edge_sb').prop("disabled", true)
+    $$('.task_sb').prop("disabled", true)
+    $$('.robot_sb').prop("disabled", true)
 }
 
 
@@ -308,71 +301,74 @@ function getRobots() {
 <script>
 
 function load_tunnels() {
-    $$('.tunnel-dropdown-menu')
+    $$('.tunnel-ddm')
         .append('<li style="font-size: 500%;" ><a href="#">select</a></li>')
         .append('<li role="separator" class="divider"></li>')
     for (let i = 0; i < Object.keys(map).length; i++) {
-        $$('.tunnel-dropdown-menu')
+        $$('.tunnel-ddm')
             .append('<li style="font-size: 500%;" ><a href="#">'+Object.keys(map)[i]+'</a></li>')
             .append('<li role="separator" class="divider"></li>') }
-    $$(".tunnel-dropdown-menu li a").click(tunnel_li_a_response);
-    $$('.tunnel_selection_btn').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
+    $$(".tunnel-ddm li a").click(tunnel_li_a_response);
+    $$('.tunnel_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
 
 function load_rows() {
     empty_rows()
-    $$('.row-dropdown-menu')
+    $$('.row-ddm')
         .append('<li style="font-size: 500%;" ><a href="#">all</a></li>')
         .append('<li role="separator" class="divider"></li>')
     for (let i = 0; i < Object.keys(map[tunnel_id]).length; i++) {
-        $$('.row-dropdown-menu')
+        $$('.row-ddm')
             .append('<li style="font-size: 500%;" ><a href="#">'+Object.keys(map[tunnel_id])[i]+'</a></li>')
             .append('<li role="separator" class="divider"></li>') }
-    $$(".row-dropdown-menu li a").click(row_li_a_response);
-    $$('.row_selection_btn').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
+    $$(".row-ddm li a").click(row_li_a_response);
+    $$('.row_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
 
 function load_edges() {
     empty_edges()
-    $$('.edge-dropdown-menu')
+    $$('.edge-ddm')
         .append('<li style="font-size: 500%;" ><a href="#">all</a></li>')
         .append('<li role="separator" class="divider"></li>')
     for (let i = 0; i < Object.keys(map[tunnel_id][row_id]).length; i++) {
-        $$('.edge-dropdown-menu')
+        $$('.edge-ddm')
             .append('<li style="font-size: 500%;" ><a href="#">'+map[tunnel_id][row_id][i]+'</a></li>')
             .append('<li role="separator" class="divider"></li>') }
-    $$(".edge-dropdown-menu li a").click(edge_li_a_response);
-    $$('.edge_selection_btn').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
+    $$(".edge-ddm li a").click(edge_li_a_response);
+    $$('.edge_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
 
 
 
 
 function load_tasks() {
+    $$('.task-ddm')
+        .append('<li style="font-size: 500%;" ><a href="#">select</a></li>')
+        .append('<li role="separator" class="divider"></li>')
     for (let i = 0; i < Object.keys(robots['tall']).length; i++) {
-        $$('.task-dropdown-menu')
+        $$('.task-ddm')
             .append('<li style="font-size: 500%;" ><a href="#">'+Object.keys(robots['tall'])[i]+'</a></li>')
             .append('<li role="separator" class="divider"></li>') }
-    $$(".task-dropdown-menu li a").click(task_li_a_response);
-    $$('.task_selection_btn').prop("disabled", false).removeClass("btn-outline-warning").addClass("btn-warning"); }
+    $$(".task-ddm li a").click(task_li_a_response);
+    $$('.task_sb').prop("disabled", false).removeClass("btn-outline-warning").addClass("btn-warning"); }
 
 function load_robots() {
     empty_robots()
-    $$('.robot-dropdown-menu')
+    $$('.robot-ddm')
         .append('<li style="font-size: 500%;" ><a href="#">closest</a></li>')
         .append('<li role="separator" class="divider"></li>')
     for (let i = 0; i < Object.keys(robots['tall'][task_type]).length; i++) {
-        $$('.robot-dropdown-menu')
+        $$('.robot-ddm')
             .append('<li style="font-size: 500%;" ><a href="#">'+robots['tall'][task_type][i]+'</a></li>')
             .append('<li role="separator" class="divider"></li>') }
-    $$(".robot-dropdown-menu li a").click(robot_li_a_response);
-    $$('.robot_selection_btn').prop("disabled", false).removeClass("btn-outline-warning").addClass("btn-warning"); }
+    $$(".robot-ddm li a").click(robot_li_a_response);
+    $$('.robot_sb').prop("disabled", false).removeClass("btn-outline-warning").addClass("btn-warning"); }
 
 
 </script>
 
 <script>
 
-function empty_rows() {     $$('.row-dropdown-menu').empty();   $$('.row_selection_btn').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success");}
-function empty_edges() {   $$('.edge-dropdown-menu').empty();  $$('.edge_selection_btn').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success");}
-function empty_robots() { $$('.robot-dropdown-menu').empty(); $$('.robot_selection_btn').prop("disabled", true).addClass("btn-outline-warning").removeClass("btn-warning");}
+function empty_rows() {     $$('.row-ddm').empty();   $$('.row_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); row_id='all'; }
+function empty_edges() {   $$('.edge-ddm').empty();  $$('.edge_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); edge_id='all'; }
+function empty_robots() { $$('.robot-ddm').empty(); $$('.robot_sb').prop("disabled", true).addClass("btn-outline-warning").removeClass("btn-warning"); robot_id='closest'; }
 
 
 </script>
@@ -398,6 +394,7 @@ function tunnel_li_a_response(){
         empty_rows()
     }
     empty_edges()
+    update_begin_button(state)
 }
 
 function row_li_a_response() {
@@ -419,6 +416,7 @@ function row_li_a_response() {
 function edge_li_a_response() {
     $$('.edge_selection').text($$(this).text());
     $$('.edge_selection').val($$(this).text());
+    edge_id = $$('.edge_selection').val()
     console.log('new edge: ' + $$('.edge_selection').val());
 }
 
@@ -434,11 +432,13 @@ function task_li_a_response() {
     } else {
         empty_robots()
     }
+    update_begin_button(state)
 }
 
 function robot_li_a_response() {
     $$(this).parents(".btn-group").find('.robot_selection').text($$(this).text());
     $$(this).parents(".btn-group").find('.robot_selection').val($$(this).text());
+    robot_id = $$('.robot_selection').val()
     console.log('new robot: ' + $$('.robot_selection').val());
 }
 

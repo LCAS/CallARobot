@@ -89,6 +89,7 @@ if __name__ == "__main__":
         try:
             import rospy
             from std_msgs.msg import String
+            from diagnostic_msgs.msg import KeyValue
 
             rospy.init_node('car_client')
             pub_states = rospy.Publisher('~get_states', String, queue_size=100, latch=True)
@@ -100,15 +101,18 @@ if __name__ == "__main__":
                     pub_gps.publish(dumps(data))
                 else:
                     pub_states.publish(dumps(data))
+                print("\n\n")
             ws_client = WSClient(ros_publish)
 
             def set_state(msg):
                 payload = loads(msg.data)
-                user = payload['user']
-                state = payload['state']
-                ws_client.set_state(user, state)
+                ws_client.set_state(user=payload['user'], state=payload['state'])
+
+            def set_state_kv(msg):
+                ws_client.set_state(user=msg.key, state=msg.value)
 
             rospy.Subscriber('~set_states', String, set_state)
+            rospy.Subscriber('~set_states_kv', KeyValue, set_state_kv)
 
             ws_client.start()
             rospy.spin()

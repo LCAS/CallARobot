@@ -31,17 +31,13 @@ class CARState:
         self.users = {}
         self.gps = defaultdict(dict)
 
-        for u in self.users:
-            self.set_state(u, 'INIT')
-        self.log_filename = \
-            'call-a-robot-' + datetime.now().strftime("%Y%m%d-%H%M%S") + '.csv'
+        for u in self.users: self.set_state(u, 'INIT')
+        self.log_filename = 'call-a-robot-'+datetime.now().strftime("%Y%m%d-%H%M%S") + '.csv'
         self.csvfile = open(self.log_filename, 'w', 0)
         self.log_fieldnames = [
             'id', 'timestamp', 'datetime', 'user', 'log_user', 'uid',
             'state', 'latitude', 'longitude', 'row']
-        self.log_writer = DictWriter(
-            self.csvfile, fieldnames=self.log_fieldnames
-        )
+        self.log_writer = DictWriter(self.csvfile, fieldnames=self.log_fieldnames)
         self.log_writer.writeheader()
         self.log_id = 0
         self.log_lock = Lock()
@@ -96,6 +92,7 @@ class CARState:
     def get_state(self, user):
         if user not in self.states:
             self.states[user] = 'INIT'
+            print("woopwoop")
         return self.states[user]
 
     def set_state(self, user, state, log_user="", latitude=-1, longitude=-1, row=''):
@@ -116,7 +113,7 @@ class CARState:
         if extra_socket is None:
             addressees = set([])
         else:
-            addressees = set([extra_socket])
+            addressees = {extra_socket}
         addressees = addressees.union(self.clients)
         for m in addressees:
             info('send update to manager %s' % str(m))
@@ -149,7 +146,7 @@ class CARWebServer(webnsock.WebServer):
     def __init__(self):
         self.car_states = car_states
         self.is_running = True
-        self.websocket_url = getenv('WEBSOCKET_URL', '')  # 'wss://lcas.lincoln.ac.uk/car/ws'
+        self.websocket_url = getenv('WEBSOCKET_URL', '')  # 'wss://lcas.lincoln.ac.uk/car/ws' a localhost websocket url is not accessible from other devices
         self.gmaps_api = getenv('GMAPS_API', 'XXX')
         self.rows_str = getenv('CAR_ROWS', 'A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6')
         self.rows = self.rows_str.split(' ')
@@ -348,6 +345,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
             self.car_states.admin_clients.remove(self)
 
     def on_set_state(self, payload):
+        info('i believe this is coming from setstates publisher in ws_client')
         info('update state for user %s: %s' %
              (payload['user'], payload['state']))
         self.update_state(payload['user'], payload['state'])
@@ -409,11 +407,52 @@ class CARProtocol(webnsock.JsonWSProtocol):
         self.update_state(payload['user'], 'INIT')
 
     def on_get_state(self, payload):
+        print("\n")
         info('user %s requested state' % payload['user'])
         return {
             'method': 'set_state',
             'state': self.car_states.get_state(payload['user'])
         }
+
+    """Responses from Button presses on page."""
+    def on_sar_await_init(self, p): pass
+
+    def on_sar_begin_task(self, p):
+        us, t, r, e, ta, ro = p['user'], p['tunnel'], p['row'], p['edge'], p['task'], p['robot']
+        info('user(%s) begun %s task with robot(%s) over t%s_r%s_e%s' % (us, ta, ro, t, r, e))
+        self.update_state(us, 'sar_BEGUN')
+
+    def on_sar_await_start(self, p): pass
+
+    def on_sar_await_completion(self, p): pass
+
+    def on_sar_cancel_task(self, p):
+        info('user(%s) cancelled task' % p['user'])
+        self.update_state(p['user'], 'sar_CANCEL')
+
+    def on_sar_emergency_stop(self, p):
+        info('user(%s) called an emergency stop' % p['user'])
+        self.update_state(p['user'], 'sar_CANCEL')
+
+    def on_sar_init(self, p):
+        self.update_state(p['user'], 'sar_INIT')  # On begin task, move SAR to next state
+
+
+
+
+    """
+    TUNNEL
+    ROW
+    EDGE
+        1- Robot moving to UV-Treatment start location.
+        1- UV-Treatment in progress.
+        0- Task Complete, robot aligning for next row: ROW
+        1- Task Complete, robot returning to base-station: GOTOBASE
+
+    """
+
+
+
 
 
 
