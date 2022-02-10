@@ -160,8 +160,8 @@ class CARWebServer(webnsock.WebServer):
         print("ws_url = %s\n\n\n" % ws_url)
         self._renderer = web.template.render(path.realpath(path.join(fp, 'www')), base='base', globals=globals())
 
-        self.map = {'0': {'1': ['1', '2'], '2': ['1', '2'], '3': ['1', '2'], '4': ['1', '2'],  '5': ['1', '2']},
-                    '1': {'6': ['1', '2'], '7': ['1', '2'], '8': ['1', '2'], '9': ['1', '2'], '10': ['1', '2']}}
+        self.map = {'0': {'1': ['0>1', '1>2'], '2': ['0>1', '1>2'], '3': ['0>1', '1>2'], '4': ['0>1', '1>2'],  '5': ['0>1', '1>2']},
+                    '1': {'6': ['0>1', '1>2'], '7': ['0>1', '1>2'], '8': ['0>1', '1>2'], '9': ['0>1', '1>2'], '10': ['0>1', '1>2']}}
         self.robots = {'short': {'logistics': ['thorvald_014']},
                        'tall': {'uv_treatment': ['thorvald_002_tall', 'thorvald_030'],
                                 'data_gathering': ['thorvald_002_tall']}}
