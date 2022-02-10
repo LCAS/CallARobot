@@ -29,14 +29,15 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
     }
 
     function move_state(s) {
-        console.log("moving from " + state + " to " + s)
+        console.log("moving from " + state + " to " + s.split('-')[0])
         $$('#main_btn').html("");
         $$('#main_btn').prop('disabled', false);
         $$('#main_btn').removeAttr('onclick');
         $$('#main_btn').removeClass('btn-success btn-danger btn-warning btn-default btn-primary');
 
         let cancel = false
-        switch(s) {
+        let reset = false
+        switch(s.split('-')[0]) {
             case 'INIT':
             case 'sar_INIT':
                 $$('#main_btn').html('Select a tunnel <br/>and task type.');
@@ -49,8 +50,6 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
                 $$('#main_btn').addClass('btn-warning');
                 disableDropdowns();
                 break;
-                //^ up to here works...
-
             case 'sar_AWAIT_START':
                 $$('#main_btn').html('Robot moving to<br/>start location.'); cancel = true;
                 break;
@@ -62,12 +61,12 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
                 $$('#main_btn').addClass('btn-success');
                 $$('#main_btn').attr('onClick', "send({'method':'sar_init', 'user': user});");
                 break;
+            case 'sar_EMERGENCY':
+                $$('#main_btn').html('EMERGENCY<br/>CANCELLATION'); reset = true; break;
             case 'sar_CANCEL':
-                $$('#main_btn').html('TASK CANCELLED<br/>Click to reset.');
-                $$('#main_btn').addClass('btn-danger');
-                $$('#main_btn').attr('onClick', "send({'method':'sar_init', 'user': user});");
-                disableDropdowns();
-                break;
+                $$('#main_btn').html('TASK CANCELLED'); reset = true; break;
+            case 'sar_CANCEL_REMOTE':
+                $$('#main_btn').html('TASK CANCELLED<br/>REMOTELY'); reset = true; break;
             default:
                 $$('#main_btn').html("STATE Error");
                 $$('#main_btn').addClass('btn-dark');
@@ -77,6 +76,11 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
             $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>Click to cancel.')
             $$('#main_btn').attr('onClick', "send({'method':'sar_cancel_task', 'user': user});");
         }
+        if (reset) {
+            $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>Click to reset.')
+            $$('#main_btn').addClass('btn-danger');
+            $$('#main_btn').attr('onClick', "send({'method':'sar_init', 'user': user});");
+            disableDropdowns();        }
     }
 
     function transition(new_state) {

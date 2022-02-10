@@ -160,8 +160,8 @@ class CARWebServer(webnsock.WebServer):
         print("ws_url = %s\n\n\n" % ws_url)
         self._renderer = web.template.render(path.realpath(path.join(fp, 'www')), base='base', globals=globals())
 
-        self.map = {'1': {'1': ['1', '2'], '2': ['1', '2'], '3': ['1', '2'], '4': ['1', '2'],  '5': ['1', '2']},
-                    '2': {'6': ['1', '2'], '7': ['1', '2'], '8': ['1', '2'], '9': ['1', '2'], '10': ['1', '2']}}
+        self.map = {'0': {'1': ['1', '2'], '2': ['1', '2'], '3': ['1', '2'], '4': ['1', '2'],  '5': ['1', '2']},
+                    '1': {'6': ['1', '2'], '7': ['1', '2'], '8': ['1', '2'], '9': ['1', '2'], '10': ['1', '2']}}
         self.robots = {'short': {'logistics': ['thorvald_014']},
                        'tall': {'uv_treatment': ['thorvald_002_tall', 'thorvald_030'],
                                 'data_gathering': ['thorvald_002_tall']}}
@@ -420,7 +420,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
     def on_sar_begin_task(self, p):
         us, t, r, e, ta, ro = p['user'], p['tunnel'], p['row'], p['edge'], p['task'], p['robot']
         info('user(%s) begun %s task with robot(%s) over t%s_r%s_e%s' % (us, ta, ro, t, r, e))
-        self.update_state(us, 'sar_BEGUN')
+        self.update_state(us, 'sar_BEGUN-%s-%s-%s-%s-%s' % (t, r, e, ta, ro))
 
     def on_sar_await_start(self, p): pass
 
@@ -432,28 +432,10 @@ class CARProtocol(webnsock.JsonWSProtocol):
 
     def on_sar_emergency_stop(self, p):
         info('user(%s) called an emergency stop' % p['user'])
-        self.update_state(p['user'], 'sar_CANCEL')
+        self.update_state(p['user'], 'sar_EMERGENCY')
 
     def on_sar_init(self, p):
         self.update_state(p['user'], 'sar_INIT')  # On begin task, move SAR to next state
-
-
-
-
-    """
-    TUNNEL
-    ROW
-    EDGE
-        1- Robot moving to UV-Treatment start location.
-        1- UV-Treatment in progress.
-        0- Task Complete, robot aligning for next row: ROW
-        1- Task Complete, robot returning to base-station: GOTOBASE
-
-    """
-
-
-
-
 
 
 def main():

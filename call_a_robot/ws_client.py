@@ -93,6 +93,7 @@ if __name__ == "__main__":
 
             rospy.init_node('car_client')
             pub_states = rospy.Publisher('~get_states', String, queue_size=100, latch=True)
+            pub_states_kv = rospy.Publisher('~get_states_kv', KeyValue, queue_size=100, latch=True)
             pub_gps = rospy.Publisher('~get_gps', String, queue_size=100, latch=True)
 
             def ros_publish(data):
@@ -102,6 +103,9 @@ if __name__ == "__main__":
                 else:
                     pub_states.publish(dumps(data))
                 print("\n\n")
+                if data['method'] == 'update_orders':
+                    for k, v in data['states'].items():
+                        pub_states_kv.publish(KeyValue(key=k, value=v))
             ws_client = WSClient(ros_publish)
 
             def set_state(msg):
