@@ -28,64 +28,117 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
         }
     }
 
+
+    function switchy(s) {
+        switch(s) {
+            case 'a':
+                console.log('a'); break
+            case 'b':
+                console.log('b'); s='d';
+            case 'c':
+                console.log('c'); break
+            case 'd':
+                console.log('d'); break
+        }
+    }
+
+
+    let non_emergency = '';
     function move_state(s) {
-        console.log("moving from " + state + " to " + s.split('-')[0])
         $$('#main_btn').html("");
         $$('#main_btn').prop('disabled', false);
         $$('#main_btn').removeAttr('onclick');
         $$('#main_btn').removeClass('btn-success btn-danger btn-warning btn-default btn-primary');
 
-        let cancel = false
-        let reset = false
         switch(s.split('-')[0]) {
+            case 'sar_EMERGENCY_STOP':
+                $$('#emergency_btn').html("Click to Resume");
+                $$('#emergency_btn').attr('onClick', "send({'method':'sar_emergency_resume', 'user': user});");
+
+                $$('#main_btn').html("EMERGENCY<br/>PAUSE");
+                main_btn_mod('cancel task', 'danger', 'sar_cancel_task');
+
+                non_emergency = state;
+                break;
+
+            case 'sar_EMERGENCY_RESUME':
+                s = non_emergency;
+            case 'sar_CANCEL':
+                $$('#emergency_btn').html("Emergency Stop");
+                $$('#emergency_btn').attr('onClick', "send({'method':'sar_emergency_stop', 'user': user});");
+                non_emergency = '';
+                break;
+        }
+
+        console.log("2 | state:" + state + " | s:" + s + " | bg: " + non_emergency)
+        switch(s.split('-')[0]) {
+            case 'sar_EMERGENCY_STOP':
+                break;
+
+            case 'sar_EMERGENCY_RESUME':
+                break;
+
             case 'INIT':
             case 'sar_INIT':
                 $$('#main_btn').html('Select a tunnel <br/>and task type.');
                 $$('#main_btn').prop('disabled', true);
-                activateRequiredDropdowns(); //we want to re-enable the dropdowns
+                activateRequiredDropdowns();
                 update_begin_button(s);
                 break;
+
             case 'sar_BEGUN':
-                $$('#main_btn').html('Awaiting server<br/>confirmation.'); cancel = true;
-                $$('#main_btn').addClass('btn-warning');
-                disableDropdowns();
-                break;
+                $$('#main_btn').html('Awaiting server<br/>confirmation.');
+                main_btn_mod('cancel', 'default', 'sar_cancel_task'); break;
+
             case 'sar_AWAIT_START':
-                $$('#main_btn').html('Robot moving to<br/>start location.'); cancel = true;
-                break;
+                $$('#main_btn').html('Robot moving to<br/>start location.');
+                main_btn_mod('cancel', 'default', 'sar_cancel_task'); break;
+
             case 'sar_AWAIT_TASK_COMPLETION':
-                $$('#main_btn').html('Robot has begun<br/>'+task_type.replace('_',' ')+'.'); cancel = true;
-                break;
+                $$('#main_btn').html('Robot has begun<br/>'+task_type.replace('_',' ')+'.');
+                main_btn_mod('cancel', 'primary', 'sar_cancel_task'); break;
+
             case 'sar_COMPLETE':
-                $$('#main_btn').html('All task stages<br/>are complete.<br/><br/>Click to reset.');
-                $$('#main_btn').addClass('btn-success');
-                $$('#main_btn').attr('onClick', "send({'method':'sar_init', 'user': user});");
-                break;
-            case 'sar_EMERGENCY':
-                $$('#main_btn').html('EMERGENCY<br/>CANCELLATION'); reset = true; break;
+                $$('#main_btn').html('All task stages<br/>are complete.');
+                main_btn_mod('reset', 'success', 'sar_init'); break;
+
             case 'sar_CANCEL':
-                $$('#main_btn').html('TASK CANCELLED'); reset = true; break;
+                emergency_btn_reset();
+                $$('#main_btn').html('TASK CANCELLED');
+                main_btn_mod('reset', 'danger', 'sar_init'); break;
+
             case 'sar_CANCEL_REMOTE':
-                $$('#main_btn').html('TASK CANCELLED<br/>REMOTELY'); reset = true; break;
+                emergency_btn_reset();
+                $$('#main_btn').html('TASK CANCELLED<br/>REMOTELY');
+                main_btn_mod('reset', 'default', 'sar_init'); break;
+
             default:
                 $$('#main_btn').html("STATE Error");
                 $$('#main_btn').addClass('btn-dark');
                 break;
         }
-        if (cancel) {
-            $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>Click to cancel.')
-            $$('#main_btn').attr('onClick', "send({'method':'sar_cancel_task', 'user': user});");
-        }
-        if (reset) {
-            $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>Click to reset.')
-            $$('#main_btn').addClass('btn-danger');
-            $$('#main_btn').attr('onClick', "send({'method':'sar_init', 'user': user});");
-            disableDropdowns();        }
+        console.log("X | state:" + state + " | s:" + s + " | bg: " + non_emergency)
+        return s
+    }
+
+    function emergency_btn_reset() {
+        $$('#emergency_btn').html("Emergency Stop");
+        non_emergency = '';
+        paused = false;
+    }
+
+
+    function main_btn_mod(txt, cls, method) {
+        $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>Click to '+txt+'.')
+        $$('#main_btn').addClass('btn-'+cls);
+        $$('#main_btn').attr('onClick', "send({'method':'"+method+"', 'user': user});");
+        disableDropdowns();
     }
 
     function transition(new_state) {
-        if (new_state != state) { move_state(new_state); }
+        if (new_state != state || new_state == "sar_EMERGENCY") { new_state=move_state(new_state); }
         state = new_state;
+        $$('.logout').html(new_state);
     }
 
     function _update_orders(data) {
@@ -106,6 +159,7 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
     document.onready = function() {
         webnsock_init('$websocket_url');
         defaultVariables();
+        switchy('a');
         socket.onopen = function () {
             console.log("Connected!");
             register();
@@ -121,7 +175,7 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
                 <div class="panel panel-primary">
                     <div class="panel-heading">
                         <form action="#" method="post">
-                            <h3 style="font-size: 500%;" class="panel-title">User: $user  <button style="font-size: 75%;" class="btn btn-warning" type="submit">logout</button></h3>
+                            <h3 style="font-size: 500%;" class="panel-title">User: $user  <button style="font-size: 75%;" class="btn btn-warning logout" type="submit">logout</button></h3>
                         </form>
                     </div>
 
@@ -248,18 +302,6 @@ function defaultVariables() {
 
     console.log("default initialisation complete")
 }
-
-
-/*
-var disables = {'.tunnel_sb':false, '.row_sb':false, '.edge_sb':false, '.task_sb':false, '.robot_sb':false}
-function disable_task_options (b) {
-    console.log("Toggling task options while task is active.")
-    $$.each(disables, function(k, v) {
-        if (b) { disables[k] = $$(k+':disabled').val() == ''; $$(k).prop('disabled', true);
-        } else { $$(k).prop('disabled', v); }
-    });
-    console.log(disables)
-}*/
 
 function activateRequiredDropdowns() {
     $$('.tunnel_sb').prop("disabled", false)

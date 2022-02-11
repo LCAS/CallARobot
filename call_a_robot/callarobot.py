@@ -92,7 +92,6 @@ class CARState:
     def get_state(self, user):
         if user not in self.states:
             self.states[user] = 'INIT'
-            print("woopwoop")
         return self.states[user]
 
     def set_state(self, user, state, log_user="", latitude=-1, longitude=-1, row=''):
@@ -160,7 +159,7 @@ class CARWebServer(webnsock.WebServer):
         print("ws_url = %s\n\n\n" % ws_url)
         self._renderer = web.template.render(path.realpath(path.join(fp, 'www')), base='base', globals=globals())
 
-        self.map = {'0': {'1': ['0>1', '1>2'], '2': ['0>1', '1>2'], '3': ['0>1', '1>2'], '4': ['0>1', '1>2'],  '5': ['0>1', '1>2']},
+        self.map = {'0': {'0': ['0>1', '1>2'], '1': ['0>1', '1>2'], '2': ['0>1', '1>2'], '3': ['0>1', '1>2'], '4': ['0>1', '1>2']},
                     '1': {'6': ['0>1', '1>2'], '7': ['0>1', '1>2'], '8': ['0>1', '1>2'], '9': ['0>1', '1>2'], '10': ['0>1', '1>2']}}
         self.robots = {'short': {'logistics': ['thorvald_014']},
                        'tall': {'uv_treatment': ['thorvald_002_tall', 'thorvald_030'],
@@ -432,7 +431,11 @@ class CARProtocol(webnsock.JsonWSProtocol):
 
     def on_sar_emergency_stop(self, p):
         info('user(%s) called an emergency stop' % p['user'])
-        self.update_state(p['user'], 'sar_EMERGENCY')
+        self.update_state(p['user'], 'sar_EMERGENCY_STOP')
+
+    def on_sar_emergency_resume(self, p):
+        info('user(%s) resumed an emergency stop' % p['user'])
+        self.update_state(p['user'], 'sar_EMERGENCY_RESUME')
 
     def on_sar_init(self, p):
         self.update_state(p['user'], 'sar_INIT')  # On begin task, move SAR to next state
