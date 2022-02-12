@@ -154,10 +154,11 @@ class CARWebServer(webnsock.WebServer):
 
         self.ns = "/rasberry"
         ws_url = self.ns+'/'
-        fp = path.dirname(__file__)
-        webnsock.WebServer.__init__(self, add_static=path.join(fp, 'www/static'), static_prefix=ws_url)
-        print("ws_url = %s\n\n\n" % ws_url)
-        self._renderer = web.template.render(path.realpath(path.join(fp, 'www')), base='base', globals=globals())
+        www = path.join(path.dirname(__file__),'www')
+
+        webnsock.WebServer.__init__(self, add_static=www+'/static', static_prefix=ws_url)
+
+        self._renderer = web.template.render(path.realpath(www), base='base', globals=globals())
 
         self.map = {'0': {'0': ['0>1', '1>2'], '1': ['0>1', '1>2'], '2': ['0>1', '1>2'], '3': ['0>1', '1>2'], '4': ['0>1', '1>2']},
                     '1': {'6': ['0>1', '1>2'], '7': ['0>1', '1>2'], '8': ['0>1', '1>2'], '9': ['0>1', '1>2'], '10': ['0>1', '1>2']}}
@@ -196,77 +197,55 @@ class CARWebServer(webnsock.WebServer):
                 web.header('Content-transfer-encoding', 'binary')
                 return open(self_app.car_states.log_filename, 'rb').read()
 
-        class CallARobot(self.page):
-            path = self_app.ns+'/car/'
+        class RobotInteractions(self.page):
+
+            def INIT(self):
+                print("This needs to be overloaded.")
 
             def GET(self):
-                print("\n\n\nGETTING CALLAROBOT")
-                user = web.cookies().get('_car_user')
-                if user is None:
-                    return self_app._renderer.login(
-                        self_app.params, self_app.get_text, self_app.ns+'/car/', "CallARobot")
+                print("\n\n\nGET "+self.ri_type)
+                self.user = web.cookies().get('_%s_user'%self.ri_ref)
+                print("user: " + str(self.user))
+                if self.user is None:
+                    return self_app._renderer.login(self_app.params, self_app.get_text, self.path, self.ri_type)
                 else:
-                    self_app.car_states.users[user] = web.ctx
+                    self_app.car_states.users[self.user] = web.ctx
                     self_app.params = {
                         'n_users': len(self_app.car_states.users),
                         'users': list(self_app.car_states.users)
                     }
-                    if 'row' in self_app.car_states.gps[user]:
-                        row = self_app.car_states.gps[user]['row']
-                    else:
-                        row = ''
-
-                    return self_app._renderer.callarobot(
-                        self_app.params, self_app.get_text, user, self_app.rows, self_app.websocket_url, row)
+                    return self.INIT()
 
             def POST(self):
                 user_data = web.input(username='')
-
-                user = user_data.username
-                if user is not '':
+                self.user = user_data.username
+                if self.user is not '':
                     info('login as %s' % user_data)
-                    web.setcookie('_car_user', user)
+                    web.setcookie('_%s_user'%self.ri_ref, self.user)
                 else:
-                    web.setcookie('_car_user', '', -1)
-                return web.seeother(self_app.ns+'/car/')
-
-        class SendARobot(self.page):
+                    web.setcookie('_%s_user'%self.ri_ref, '', -1)
+                return web.seeother(self_app.ns + '/%/'%self.ri_ref)
+        class SendARobot(RobotInteractions):
+            ri_type = 'SendARobot'
+            ri_ref = 'sar'
             path = self_app.ns+'/sar/'
 
-            def GET(self):
-                print("\n\n\nGETTING SENDAROBOT")
-                user = web.cookies().get('_sar_user')
-                print("user: " + str(user))
-                if user is None:
-                    return self_app._renderer.login(
-                        self_app.params, self_app.get_text, self_app.ns+'/sar/', "SendARobot")
-                else:
-                    self_app.car_states.users[user] = web.ctx
-                    self_app.params = {
-                        'n_users': len(self_app.car_states.users),
-                        'users': list(self_app.car_states.users)
-                    }
-                    if 'row' in self_app.car_states.gps[user]:
-                        row = self_app.car_states.gps[user]['row']
-                    else:
-                        row = ''
+            def INIT(self):
+                web.setcookie('_rasberry_topomap', self_app.map)
+                web.setcookie('_robots', self_app.robots)
 
-                    web.setcookie('_rasberry_topomap', self_app.map)
-                    web.setcookie('_robots', self_app.robots)
+                return self_app._renderer.sendarobot(self_app.params, self_app.get_text, self.user, self_app.websocket_url)
+        class CallARobot(RobotInteractions):
+            ri_type = 'CallARobot'
+            ri_ref = 'car'
+            path = self_app.ns+'/car/'
 
-                    return self_app._renderer.sendarobot(
-                            self_app.params, self_app.get_text, user, self_app.websocket_url)
+            def INIT(self):
+                row = ''
+                if 'row' in self_app.car_states.gps[self.user]:
+                    row = self_app.car_states.gps[self.user]['row']
 
-            def POST(self):
-                user_data = web.input(username='')
-
-                user = user_data.username
-                if user is not '':
-                    info('login as %s' % user_data)
-                    web.setcookie('_sar_user', user)
-                else:
-                    web.setcookie('_sar_user', '', -1)
-                return web.seeother(self_app.ns+'/sar/')
+                return self_app._renderer.callarobot(self_app.params, self_app.get_text, self.user, self_app.rows, self_app.websocket_url, row)
 
         class Orders(self.page):
             path = '/car/orders'
@@ -284,6 +263,10 @@ class CARWebServer(webnsock.WebServer):
 
             def GET(self):
                 user = web.cookies().get('_car_admin')
+                self_app.params = {
+                    'n_users': len(self_app.car_states.users),
+                    'users': list(self_app.car_states.users)
+                }
                 if user is None:
                     return self_app._renderer.login(
                         self_app.params, self_app.get_text, '/car/orders')
@@ -291,7 +274,6 @@ class CARWebServer(webnsock.WebServer):
                     return self_app._renderer.orders(
                         self_app.params, self_app.get_text,
                         self_app.websocket_url, self_app.gmaps_api)
-
 
         class RedirCAR(self.page):
             path = self_app.ns+'/car'
@@ -344,7 +326,6 @@ class CARProtocol(webnsock.JsonWSProtocol):
             self.car_states.admin_clients.remove(self)
 
     def on_set_state(self, payload):
-        info('i believe this is coming from setstates publisher in ws_client')
         info('update state for user %s: %s' %
              (payload['user'], payload['state']))
         self.update_state(payload['user'], payload['state'])
@@ -353,6 +334,13 @@ class CARProtocol(webnsock.JsonWSProtocol):
         info('registering management interface %s' % str(self))
         if payload['admin']:
             self.car_states.admin_clients.add(self)
+        else:
+            if payload['user'] in self.car_states.users:
+                info('user %s already known' % payload['user'])
+            else:
+                info('new user %s registered' % payload['user'])
+                self.car_states.users[payload['user']] = payload['user']
+                self.update_state(payload['user'], 'INIT')
         self.log_user = payload['user']
 
     def on_get_states(self, payload):
@@ -413,9 +401,38 @@ class CARProtocol(webnsock.JsonWSProtocol):
             'state': self.car_states.get_state(payload['user'])
         }
 
-    """Responses from Button presses on page."""
-    def on_sar_await_init(self, p): pass
 
+
+    """Responses from Button presses on CallARobot."""
+    def on_car_init(self, p):
+        info('user(%s) initiated interface' % p['user'])
+        self.update_state(p['user'], 'car_INIT')
+
+    def on_car_call(self, p):
+        info('user(%s) made a call' % p['user'])
+        self.update_state(p['user'], 'car_CALLED')
+
+    def on_car_accept(self, p): pass
+
+    def on_car_arrived(self, p): pass
+
+    def on_car_load(self, p):
+        info('user(%s) completed loading' % p['user'])
+        self.update_state(p['user'], 'car_LOADED')
+
+    def on_car_cancel_task(self, p):
+        info('user(%s) cancelled task' % p['user'])
+        self.update_state(p['user'], 'car_CANCEL')
+
+    def on_car_complete(self, p): pass
+
+    def on_car_reset(self, p):
+        info('user(%s) made a call' % p['user'])
+        self.update_state(p['user'], 'car_RESET')
+
+
+
+    """Responses from Button presses on SendARobot."""
     def on_sar_begin_task(self, p):
         us, t, r, e, ta, ro = p['user'], p['tunnel'], p['row'], p['edge'], p['task'], p['robot']
         info('user(%s) begun %s task with robot(%s) over t%s_r%s_e%s' % (us, ta, ro, t, r, e))

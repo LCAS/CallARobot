@@ -3,14 +3,6 @@ $var title: SendARobot
 $var jsfiles:
 $var params: $:params
 
-
-<!--
-"send({'method':'set_state', 'user': user, 'state': 'LOADED'});"
-The method part of the send function calls (CARProtocol.on_'method') from callarobot.py
--->
-
-
-
 <script>
 
     function update_begin_button(s) {
@@ -27,21 +19,6 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
             }
         }
     }
-
-
-    function switchy(s) {
-        switch(s) {
-            case 'a':
-                console.log('a'); break
-            case 'b':
-                console.log('b'); s='d';
-            case 'c':
-                console.log('c'); break
-            case 'd':
-                console.log('d'); break
-        }
-    }
-
 
     let non_emergency = '';
     function move_state(s) {
@@ -70,7 +47,6 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
                 break;
         }
 
-        console.log("2 | state:" + state + " | s:" + s + " | bg: " + non_emergency)
         switch(s.split('-')[0]) {
             case 'sar_EMERGENCY_STOP':
                 break;
@@ -117,7 +93,6 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
                 $$('#main_btn').addClass('btn-dark');
                 break;
         }
-        console.log("X | state:" + state + " | s:" + s + " | bg: " + non_emergency)
         return s
     }
 
@@ -126,7 +101,6 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
         non_emergency = '';
         paused = false;
     }
-
 
     function main_btn_mod(txt, cls, method) {
         $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>Click to '+txt+'.')
@@ -138,7 +112,7 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
     function transition(new_state) {
         if (new_state != state || new_state == "sar_EMERGENCY") { new_state=move_state(new_state); }
         state = new_state;
-        $$('.logout').html(new_state);
+        //$$('.logout').html(new_state);
     }
 
     function _update_orders(data) {
@@ -159,7 +133,6 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
     document.onready = function() {
         webnsock_init('$websocket_url');
         defaultVariables();
-        switchy('a');
         socket.onopen = function () {
             console.log("Connected!");
             register();
@@ -175,7 +148,9 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
                 <div class="panel panel-primary">
                     <div class="panel-heading">
                         <form action="#" method="post">
-                            <h3 style="font-size: 500%;" class="panel-title">User: $user  <button style="font-size: 75%;" class="btn btn-warning logout" type="submit">logout</button></h3>
+                            <h3 style="font-size: 500%;" class="panel-title">User: $user
+                                <button style="font-size: 63%; float: right;" class="btn btn-warning logout" type="submit">logout</button>
+                            </h3>
                         </form>
                     </div>
 
@@ -256,8 +231,9 @@ The method part of the send function calls (CARProtocol.on_'method') from callar
                                     id="main_btn"
                                     onclick="send({ 'method':'sar_begin_task', 'user': user, 'row': row });"
                                     disabled=true
-                                    class="btn btn-block btn-lg">Initialising...</button>
-                            </div>
+                                    class="btn btn-block btn-lg">Initialising...
+                            </button>
+                        </div>
                     </div>
 
                     <div class="panel-body">
