@@ -58,6 +58,7 @@ $var params: $:params
             case 'sar_INIT':
                 $$('#main_btn').html('Select a tunnel <br/>and task type.');
                 $$('#main_btn').prop('disabled', true);
+                defaultVariables();
                 activateRequiredDropdowns();
                 update_begin_button(s);
                 break;
@@ -123,7 +124,11 @@ $var params: $:params
     function register() { send({ 'method':'register', 'admin': false, 'user': '$user' }); console.log("registered!"); }
 
     function query_state(u){ send({ 'method':'get_state', 'user': user, }); }
-    function _set_state(s) { transition(s['state']); }
+    function _set_state(s) {
+        console.log("_set_state " + s)
+        if ('INIT' in state) { console.log(s) }
+        transition(s['state']);
+    }
 
 
     // globals
@@ -299,25 +304,20 @@ function disableDropdowns() {
 </script>
 
 <script>
-function getRasberryTopoMap() {
+function get_cookie(name) {
   let ca = decodeURIComponent(document.cookie).split('; ');
   let dict = {};
   for(let i = 0; i <ca.length; i++) {
     kv = ca[i].split('=');
     dict[kv[0]] = kv[1];
   }
-  return JSON.parse(dict["_rasberry_topomap"].replaceAll("'","\""))
+  if (name in dict) { return JSON.parse(dict[name].replaceAll("'","\"")); }
+  return {};
 }
 
-function getRobots() {
-  let ca = decodeURIComponent(document.cookie).split('; ');
-  let dict = {};
-  for(let i = 0; i <ca.length; i++) {
-    kv = ca[i].split('=');
-    dict[kv[0]] = kv[1];
-  }
-  return JSON.parse(dict["_robots"].replaceAll("'","\""))
-}
+function getRasberryTopoMap() { return get_cookie("_map"); }
+function getRobots() { return get_cookie("_robots"); }
+
 </script>
 
 <script>

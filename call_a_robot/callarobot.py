@@ -138,7 +138,7 @@ class CARState:
 
 
 car_states = CARState()
-
+server_details = dict()
 
 class CARWebServer(webnsock.WebServer):
 
@@ -160,11 +160,11 @@ class CARWebServer(webnsock.WebServer):
 
         self._renderer = web.template.render(path.realpath(www), base='base', globals=globals())
 
-        self.map = {'0': {'0': ['0>1', '1>2'], '1': ['0>1', '1>2'], '2': ['0>1', '1>2'], '3': ['0>1', '1>2'], '4': ['0>1', '1>2']},
-                    '1': {'6': ['0>1', '1>2'], '7': ['0>1', '1>2'], '8': ['0>1', '1>2'], '9': ['0>1', '1>2'], '10': ['0>1', '1>2']}}
-        self.robots = {'short': {'logistics': ['thorvald_014']},
-                       'tall': {'uv_treatment': ['thorvald_002_tall', 'thorvald_030'],
-                                'data_gathering': ['thorvald_002_tall']}}
+        # self.map = {'0': {'0': ['0>1', '1>2'], '1': ['0>1', '1>2'], '2': ['0>1', '1>2'], '3': ['0>1', '1>2'], '4': ['0>1', '1>2']},
+        #             '1': {'6': ['0>1', '1>2'], '7': ['0>1', '1>2'], '8': ['0>1', '1>2'], '9': ['0>1', '1>2'], '10': ['0>1', '1>2']}}
+        # self.robots = {'short': {'logistics': ['thorvald_014']},
+        #                'tall': {'uv_treatment': ['thorvald_002_tall', 'thorvald_030'],
+        #                         'data_gathering': ['thorvald_002_tall']}}
 
         self_app = self
 
@@ -236,8 +236,9 @@ class CARWebServer(webnsock.WebServer):
             path = self_app.ns+'/sar/'
 
             def INIT(self):
-                web.setcookie('_rasberry_topomap', self_app.map)
-                web.setcookie('_robots', self_app.robots)
+                req = ['_map','_robots']
+                if any([i not in server_details for i in req]): return self_app._renderer.resourcemissing(self_app.params)
+                for r in req: web.setcookie(r,server_details[r])
                 return self_app._renderer.sendarobot(self_app.params, self_app.get_text, self.user, self_app.websocket_url)
 
         class CallARobot(RobotInteractions):
@@ -335,9 +336,15 @@ class CARProtocol(webnsock.JsonWSProtocol):
             self.car_states.admin_clients.remove(self)
 
     def on_set_state(self, payload):
-        info('update state for user %s: %s' %
-             (payload['user'], payload['state']))
-        self.update_state(payload['user'], payload['state'])
+        print("\n\n")
+        if '/info/' in payload['user']:
+            cookie = '_'+payload['user'].split('/')[-1]
+            info('cookie set of name %s: %s' % (cookie, payload['state']))
+            server_details[cookie] = payload['state']
+            # web.setcookie('cookie', 'hello')
+        else:
+            info('update state for user %s: %s' % (payload['user'], payload['state']))
+            self.update_state(payload['user'], payload['state'])
 
     def on_register(self, payload):
         info('registering management interface %s' % str(self))
