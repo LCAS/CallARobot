@@ -341,7 +341,6 @@ class CARProtocol(webnsock.JsonWSProtocol):
             cookie = '_'+payload['user'].split('/')[-1]
             info('cookie set of name %s: %s' % (cookie, payload['state']))
             server_details[cookie] = payload['state']
-            # web.setcookie('cookie', 'hello')
         else:
             info('update state for user %s: %s' % (payload['user'], payload['state']))
             self.update_state(payload['user'], payload['state'])

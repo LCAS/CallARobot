@@ -125,8 +125,7 @@ $var params: $:params
 
     function query_state(u){ send({ 'method':'get_state', 'user': user, }); }
     function _set_state(s) {
-        console.log("_set_state " + s)
-        if ('INIT' in state) { console.log(s) }
+        console.log("_set_state " + s['state'])
         transition(s['state']);
     }
 
@@ -323,6 +322,7 @@ function getRobots() { return get_cookie("_robots"); }
 <script>
 
 function load_tunnels() {
+    empty_tunnels()
     $$('.tunnel-ddm')
         .append('<li style="font-size: 500%;" ><a href="#">select</a></li>')
         .append('<li role="separator" class="divider"></li>')
@@ -361,6 +361,7 @@ function load_edges() {
 
 
 function load_tasks() {
+    empty_tasks()
     $$('.task-ddm')
         .append('<li style="font-size: 500%;" ><a href="#">select</a></li>')
         .append('<li role="separator" class="divider"></li>')
@@ -388,9 +389,11 @@ function load_robots() {
 
 <script>
 
-function empty_rows() {     $$('.row-ddm').empty();   $$('.row_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); row_id='all'; }
-function empty_edges() {   $$('.edge-ddm').empty();  $$('.edge_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); edge_id='all'; }
-function empty_robots() { $$('.robot-ddm').empty(); $$('.robot_sb').prop("disabled", true).addClass("btn-outline-warning").removeClass("btn-warning"); robot_id='closest'; }
+function empty_tunnels() { $$('.tunnel-ddm').empty(); }
+function empty_rows() {       $$('.row-ddm').empty();  $$('.row_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); row_id='all'; }
+function empty_edges() {     $$('.edge-ddm').empty(); $$('.edge_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); edge_id='all'; }
+function empty_tasks() {     $$('.task-ddm').empty(); }
+function empty_robots() {   $$('.robot-ddm').empty(); $$('.robot_sb').prop("disabled", true).addClass("btn-outline-warning").removeClass("btn-warning"); robot_id='closest'; }
 
 
 </script>
