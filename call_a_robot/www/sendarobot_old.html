@@ -13,7 +13,7 @@ $var params: $:params
                 $$('#main_btn').removeClass('btn-primary');
             } else {
                 $$('#main_btn').html('Make Request');
-                $$('#main_btn').attr('onClick', "send({'method':'sar_begin_edge_task', 'user': user, 'tunnel':tunnel_id, 'row':row_id, 'edge1':edge1_id, 'edge2':edge2_id, 'task':task_type, 'robot':robot_id});");
+                $$('#main_btn').attr('onClick', "send({'method':'sar_begin_task', 'user': user, 'tunnel':tunnel_id, 'row':row_id, 'edge':edge_id, 'task':task_type, 'robot':robot_id});");
                 $$('#main_btn').addClass('btn-primary');
                 $$('#main_btn').prop('disabled', false);
             }
@@ -56,6 +56,8 @@ $var params: $:params
 
             case 'INIT':
             case 'sar_INIT':
+                $$('#main_btn').html('Select a tunnel <br/>and task type.');
+                $$('#main_btn').prop('disabled', true);
                 defaultVariables();
                 activateRequiredDropdowns();
                 update_begin_button(s);
@@ -184,25 +186,14 @@ $var params: $:params
                             </div>
                         </div>
                         <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
-                            <div class="btn-group btn-group-lg" role="group" style="padding-right:2px">
+                            <div class="btn-group btn-group-lg" role="group">
                                 <div class="dropdown">
-                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-success dropdown-toggle edge1_sb"
-                                            type="button" id="dropdownMenu3a" disabled=true
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-success dropdown-toggle edge_sb"
+                                            type="button" id="dropdownMenu3" disabled=true
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                                        From: <span class="edge1_selection"></span> <span class="caret"></span>
+                                        Edge: <span class="edge_selection"></span> <span class="caret"></span>
                                     </button>
-                                    <ul class="dropdown-menu edge1-ddm" style="width: 100%;" aria-labelledby="dropdownMenu3a">
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="btn-group btn-group-lg" role="group" style="padding-left:2px">
-                                <div class="dropdown">
-                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-success dropdown-toggle edge2_sb"
-                                            type="button" id="dropdownMenu3b" disabled=true
-                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                                        To: <span class="edge2_selection"></span> <span class="caret"></span>
-                                    </button>
-                                    <ul class="dropdown-menu edge2-ddm" style="width: 100%;" aria-labelledby="dropdownMenu3b">
+                                    <ul class="dropdown-menu edge-ddm" style="width: 100%;" aria-labelledby="dropdownMenu3">
                                     </ul>
                                 </div>
                             </div>
@@ -270,18 +261,22 @@ $var params: $:params
 var map
 var robots
 
-var tunnel_id = 'select'
-var row_id = 'all'
-var edge1_id = 'all'
-var edge2_id = 'all'
+var tunnel_id
+var row_id
+var edge_id
 
-var task_type = 'select'
-var robot_id = 'closest'
+var task_type
+var robot_id
 
 function defaultVariables() {
+    tunnel_id = 'select'
+    row_id = 'all'
+    edge_id = 'all'
     map = getRasberryTopoMap()
     load_tunnels()
 
+    task_type = 'select'
+    robot_id = 'closest'
     robots = getRobots()
     load_tasks()
 
@@ -291,8 +286,7 @@ function defaultVariables() {
 function activateRequiredDropdowns() {
     $$('.tunnel_sb').prop("disabled", false)
     $$('.row_sb').prop("disabled", $$('.tunnel_selection').val() == 'select' || $$('.tunnel_selection').val() == '')
-    $$('.edge1_sb').prop("disabled", $$('.row_selection').val() == 'all' || $$('.row_selection').val() == '')
-    $$('.edge2_sb').prop("disabled", $$('.row_selection').val() == 'all' || $$('.row_selection').val() == '')
+    $$('.edge_sb').prop("disabled", $$('.row_selection').val() == 'all' || $$('.row_selection').val() == '')
     $$('.task_sb').prop("disabled", false)
     $$('.robot_sb').prop("disabled", $$('.task_selection').val() == 'select' || $$('.task_selection').val() == '')
 }
@@ -300,8 +294,7 @@ function activateRequiredDropdowns() {
 function disableDropdowns() {
     $$('.tunnel_sb').prop("disabled", true)
     $$('.row_sb').prop("disabled", true)
-    $$('.edge1_sb').prop("disabled", true)
-    $$('.edge2_sb').prop("disabled", true)
+    $$('.edge_sb').prop("disabled", true)
     $$('.task_sb').prop("disabled", true)
     $$('.robot_sb').prop("disabled", true)
 }
@@ -352,29 +345,17 @@ function load_rows() {
     $$(".row-ddm li a").click(row_li_a_response);
     $$('.row_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
 
-function load_edges1() {
-    empty_edges1()
-    $$('.edge1-ddm')
+function load_edges() {
+    empty_edges()
+    $$('.edge-ddm')
         .append('<li style="font-size: 500%;" ><a href="#">all</a></li>')
         .append('<li role="separator" class="divider"></li>')
     for (let i = 0; i < Object.keys(map[tunnel_id][row_id]).length; i++) {
-        $$('.edge1-ddm')
+        $$('.edge-ddm')
             .append('<li style="font-size: 500%;" ><a href="#">'+map[tunnel_id][row_id][i]+'</a></li>')
             .append('<li role="separator" class="divider"></li>') }
-    $$(".edge1-ddm li a").click(edge1_li_a_response);
-    $$('.edge1_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
-
-function load_edges2() {
-    empty_edges2()
-    $$('.edge2-ddm')
-        .append('<li style="font-size: 500%;" ><a href="#">all</a></li>')
-        .append('<li role="separator" class="divider"></li>')
-    for (let i = 0; i < Object.keys(map[tunnel_id][row_id]).length; i++) {
-        $$('.edge2-ddm')
-            .append('<li style="font-size: 500%;" ><a href="#">'+map[tunnel_id][row_id][i]+'</a></li>')
-            .append('<li role="separator" class="divider"></li>') }
-    $$(".edge2-ddm li a").click(edge2_li_a_response);
-    $$('.edge2_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
+    $$(".edge-ddm li a").click(edge_li_a_response);
+    $$('.edge_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
 
 
 
@@ -409,9 +390,8 @@ function load_robots() {
 <script>
 
 function empty_tunnels() { $$('.tunnel-ddm').empty(); }
-function empty_rows() {       $$('.row-ddm').empty();   $$('.row_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); row_id='all'; }
-function empty_edges1() {   $$('.edge1-ddm').empty(); $$('.edge1_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); edge_id1='all'; }
-function empty_edges2() {   $$('.edge2-ddm').empty(); $$('.edge2_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); edge_id2='all'; }
+function empty_rows() {       $$('.row-ddm').empty();  $$('.row_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); row_id='all'; }
+function empty_edges() {     $$('.edge-ddm').empty(); $$('.edge_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); edge_id='all'; }
 function empty_tasks() {     $$('.task-ddm').empty(); }
 function empty_robots() {   $$('.robot-ddm').empty(); $$('.robot_sb').prop("disabled", true).addClass("btn-outline-warning").removeClass("btn-warning"); robot_id='closest'; }
 
@@ -425,10 +405,8 @@ function tunnel_li_a_response(){
     $$('.tunnel_selection').val($$(this).text());
     $$('.row_selection').text("all");
     $$('.row_selection').val("all");
-    $$('.edge1_selection').text("");
-    $$('.edge1_selection').val("");
-    $$('.edge2_selection').text("");
-    $$('.edge2_selection').val("");
+    $$('.edge_selection').text("");
+    $$('.edge_selection').val("");
     console.log('new tunnel: ' + $$('.tunnel_selection').val());
     tunnel_id = $$('.tunnel_selection').val()
     if ($$('.tunnel_selection').val() != 'select') {
@@ -436,61 +414,35 @@ function tunnel_li_a_response(){
     } else {
         $$('.row_selection').text("");
         $$('.row_selection').val("");
-        $$('.edge1_selection').text("");
-        $$('.edge1_selection').val("");
-        $$('.edge2_selection').text("");
-        $$('.edge2_selection').val("");
+        $$('.edge_selection').text("");
+        $$('.edge_selection').val("");
         empty_rows()
     }
-    empty_edges1()
-    empty_edges2()
+    empty_edges()
     update_begin_button(state)
 }
 
 function row_li_a_response() {
     $$('.row_selection').text($$(this).text());
     $$('.row_selection').val($$(this).text());
-    $$('.edge1_selection').text("all");
-    $$('.edge1_selection').val("all");
-    $$('.edge2_selection').text("all");
-    $$('.edge2_selection').val("all");
+    $$('.edge_selection').text("all");
+    $$('.edge_selection').val("all");
     console.log('new row: ' + $$('.row_selection').val());
     row_id = $$('.row_selection').val()
     if ($$('.row_selection').val() != 'all') {
-        load_edges1()
-        load_edges2()
+        load_edges()
     } else {
-        $$('.edge1_selection').text("");
-        $$('.edge1_selection').val("");
-        $$('.edge2_selection').text("");
-        $$('.edge2_selection').val("");
-        empty_edges1()
-        empty_edges2()
+        $$('.edge_selection').text("");
+        $$('.edge_selection').val("");
+        empty_edges()
     }
 }
 
-function edge1_li_a_response() {
-    $$('.edge1_selection').text($$(this).text());
-    $$('.edge1_selection').val($$(this).text());
-    edge1_id = $$('.edge1_selection').val()
-    console.log('new edge1: ' + $$('.edge1_selection').val());
-    if ($$('.edge1_selection').val() == 'all') {
-        $$('.edge2_selection').text("all");
-        $$('.edge2_selection').val("all");
-        edge2_id = 'all';
-    }
-}
-
-function edge2_li_a_response() {
-    $$('.edge2_selection').text($$(this).text());
-    $$('.edge2_selection').val($$(this).text());
-    edge2_id = $$('.edge2_selection').val()
-    console.log('new edge2: ' + $$('.edge2_selection').val());
-    if ($$('.edge2_selection').val() == 'all') {
-        $$('.edge1_selection').text("all");
-        $$('.edge1_selection').val("all");
-        edge1_id = 'all';
-    }
+function edge_li_a_response() {
+    $$('.edge_selection').text($$(this).text());
+    $$('.edge_selection').val($$(this).text());
+    edge_id = $$('.edge_selection').val()
+    console.log('new edge: ' + $$('.edge_selection').val());
 }
 
 function task_li_a_response() {

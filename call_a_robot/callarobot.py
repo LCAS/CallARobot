@@ -450,7 +450,13 @@ class CARProtocol(webnsock.JsonWSProtocol):
     """Responses from Button presses on SendARobot."""
     def on_sar_begin_task(self, p):
         us, t, r, e, ta, ro = p['user'], p['tunnel'], p['row'], p['edge'], p['task'], p['robot']
-        info('user(%s) begun %s task with robot(%s) over t%s_r%s_e%s' % (us, ta, ro, t, r, e))
+        info('user(%s) begun %s task with robot(%s) over t(%s)_r(%s)_e(%s)' % (us, ta, ro, t, r, e))
+        self.update_state(us, 'sar_BEGUN-%s-%s-%s-%s-%s' % (t, r, e, ta, ro))
+
+    def on_sar_begin_edge_task(self, p):
+        us, t, r, e1, e2, ta, ro = p['user'], p['tunnel'], p['row'], p['edge1'], p['edge2'], p['task'], p['robot']
+        e = 'all' if 'all' in [e1, e2] else '%s>%s'%(e1,e2)
+        info('user(%s) begun %s task with robot(%s) over t(%s)_r(%s)_e(%s)' % (us, ta, ro, t, r, e))
         self.update_state(us, 'sar_BEGUN-%s-%s-%s-%s-%s' % (t, r, e, ta, ro))
 
     def on_sar_await_start(self, p): pass
