@@ -57,7 +57,7 @@ $var params: $:params
     function transition(new_state) {
         if (new_state != state) { move_state(new_state); }
         state = new_state;
-        $$('.logout').html(new_state);
+        // $$('.logout').html(new_state);
     }
 
     function _update_orders(data) {
