@@ -30,15 +30,14 @@ $var params: $:params
             case 'car_LOADED':
             case 'car_COMPLETE':
                 $$('#main_btn').html('Task Completed.<br/>Robot will leave.');
-                main_btn_mod('reset', 'success', 'car_reset'); break;
+                main_btn_mod('reset', 'success', 'car_init'); break;
 
             case 'car_CANCEL':
                 $$('#main_btn').html('Task Cancelled');
-                main_btn_mod('reset', 'danger', 'car_reset'); break;
+                main_btn_mod('reset', 'danger', 'car_init'); break;
 
             case 'INIT':
             case 'car_INIT':
-            case 'car_RESET':
                 $$('#main_btn').html('~ CallARobot ~');
                 main_btn_mod('request', 'primary', 'car_call'); break;
 
