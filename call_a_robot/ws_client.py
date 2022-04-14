@@ -64,7 +64,7 @@ class WSClient(Thread):
             if not self.connected:
                 info("attempt connection to %s" % self.websocket_url)
                 self.ws = websocket.WebSocketApp(self.websocket_url,
-                                                 on_message=self.on_message,
+                                                 on_message=self.on_message,  # This publishes to coordinator
                                                  on_error=self.on_error,
                                                  on_close=self.on_close,
                                                  on_open=self.on_open)
@@ -96,15 +96,29 @@ if __name__ == "__main__":
         pub_gps = rospy.Publisher('~get_gps', String, queue_size=100, latch=True)
 
         def ros_publish(data):
-            rospy.loginfo('received data from web socket')
-            if data['method'] == 'update_position':
-                pub_gps.publish(dumps(data))
-            else:
-                pub_states.publish(dumps(data))
             print("\n\n")
-            if data['method'] == 'update_orders':
+            rospy.loginfo('received data from web socket')
+
+            if 'method' not in data:
+                rospy.logwarn('unsure what to do with data: %s'%data)
+                return
+
+            if data['method'] == 'update_position':
+                rospy.loginfo('publishing gps')
+                pub_gps.publish(dumps(data))
+
+            elif data['method'] == 'update_orders':
+                rospy.loginfo('publishing update to orders')
                 for k, v in data['states'].items():
                     pub_states_kv.publish(KeyValue(key=k, value=v))
+                pub_states.publish(dumps(data))
+
+            elif data['method'] == 'new_user':
+                rospy.loginfo('publishing new user id')
+                pub = rospy.Publisher('/%s/new_agent'%data['ri_ref'], String, queue_size=100, latch=True)
+                pub.publish(String(data['user']))
+
+
         ws_client = WSClient(ros_publish)
 
         def set_state(msg):

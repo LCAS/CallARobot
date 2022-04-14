@@ -94,7 +94,7 @@ class CARState:
             self.states[user] = 'INIT'
         return self.states[user]
 
-    def set_state(self, user, state, log_user="", latitude=-1, longitude=-1, row=''):
+    def set_state(self, user, state, log_user="", latitude=-1, longitude=-1, row=''):  #this publishes to ATM
         prev_state = self.states[user]
         self.states[user] = state
         if latitude == -1 and user in self.gps and 'latitude' in self.gps[user]:
@@ -107,6 +107,15 @@ class CARState:
             longitude = -1
         # self.trigger_webhook()
         self.log(user, state, log_user, latitude, longitude, row)
+
+    def send_new_user(self, ri_ref, user):
+        for m in self.clients:
+            info('send notification of new %s agent (%s) to manager %s' % (ri_ref, user, str(m)))
+            m.sendJSON({
+                'method': 'new_user',
+                'ri_ref': ri_ref,
+                'user': user
+            })
 
     def send_updated_states(self, extra_socket=None):
         if extra_socket is None:
@@ -225,6 +234,9 @@ class CARWebServer(webnsock.WebServer):
                 if self.user is not '':
                     info('login as %s' % user_data)
                     web.setcookie('_%s_user'%self.ri_ref, self.user)
+                    #####publish here
+                    self_app.car_states.send_new_user(self.ri_ref, self.user)
+
                 else:
                     web.setcookie('_%s_user'%self.ri_ref, '', -1)
                 print('RI.seeother : '+ self.path)
@@ -394,6 +406,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
         # initialise the user if not already done
         if user not in self.car_states.states:
             self.car_states.get_state(user)
+            #####publish here
         self.car_states.set_state(user, state, self.log_user)
         self.send_updated_states()
 
