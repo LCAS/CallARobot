@@ -1,4 +1,4 @@
-$def with (params)
+$def with (params, user)
 $var title: Error
 $var jsfiles:
 $var params: $:params
@@ -9,6 +9,13 @@ $var params: $:params
             <div class="col-md-12">
                 <div class="panel panel-primary">
                     <div class="panel-heading">
+                        <form action="#" method="post">
+                            <h3 style="font-size: 500%;" class="panel-title">User: $user
+                                <button style="font-size: 63%; float: right;" class="btn btn-warning logout" type="submit">logout</button>
+                            </h3>
+                        </form>
+                    </div>
+                    <div class="panel-body" style="padding-top:2%; padding-bottom:2%;">
                         <h3 style="font-size: 500%;" class="panel-title">Resources Missing,<br/>Reload to Try Again </h3>
                     </div>
                 </div>

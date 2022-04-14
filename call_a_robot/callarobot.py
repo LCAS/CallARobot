@@ -208,9 +208,6 @@ class CARWebServer(webnsock.WebServer):
 
         class RobotInteractions(self.page):
 
-            def INIT(self):
-                print("This needs to be overloaded.")
-
             def GET(self):
                 print("\n\n\nGET "+self.ri_type)
                 self.user = web.cookies().get('_%s_user'%self.ri_ref)
@@ -226,6 +223,9 @@ class CARWebServer(webnsock.WebServer):
                 else:
                     print("user is not None: " + str(self.user))
                     return self.INIT()
+
+            def INIT(self):
+                print("This needs to be overloaded.")
 
             def POST(self):
                 print('RI.POST')
@@ -249,9 +249,12 @@ class CARWebServer(webnsock.WebServer):
 
             def INIT(self):
                 req = ['_map','_robots']
-                if any([i not in server_details for i in req]): return self_app._renderer.resourcemissing(self_app.params)
-                for r in req: web.setcookie(r,server_details[r])
+                if any([i not in server_details for i in req]):
+                    return self_app._renderer.resourcemissing(self_app.params, self.user)
+                for r in req:
+                    web.setcookie(r,server_details[r])
                 return self_app._renderer.sendarobot(self_app.params, self_app.get_text, self.user, self_app.websocket_url)
+
 
         class CallARobot(RobotInteractions):
             ri_type = 'CallARobot'
