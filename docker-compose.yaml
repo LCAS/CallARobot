@@ -3,7 +3,7 @@ version: '3'
 services:
   car:
     build: .
-    image: lcas.lincoln.ac.uk/lcas/car
+    image: lcas.lincoln.ac.uk/lcas/car:latest
     restart: always
     build: . 
     #command: ["env"]
