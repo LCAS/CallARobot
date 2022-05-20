@@ -1,0 +1,25 @@
+
+version: '3'
+services:
+  car:
+    build: .
+    image: lcas.lincoln.ac.uk/lcas/car
+    restart: always
+    build: . 
+    #command: ["env"]
+    #command: ["python", "callarobot.py"]
+    ports:
+      - 8127:8127
+      - 8128:8128
+    environment:
+      # We are tkaking the Google Maps API key form a .env file (or set it before docker-compose up)
+      GMAPS_API: ${GMAPS_API:-define_your_API_key_in_a_dot_env_file}
+      CAR_ROWS: ${CAR_ROWS:-1 2 3 4 5 6 7 8 9 10 11 12}
+      WEBSOCKET_URL: ${WEBSOCKET_URL:-wss://lcas.lincoln.ac.uk/car/ws}
+      CAR_LOG_DIR: "/car_logs"
+    volumes:
+      - ./logs:/car_logs
+    #  - /etc/apache2:/etc/apache2:ro
+    #  - /var/www:/var/www:ro
+    #  - /var/log/apache2-docker:/var/log/apache2
+    
