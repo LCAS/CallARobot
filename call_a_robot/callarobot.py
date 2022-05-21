@@ -100,7 +100,7 @@ class CARState:
                     'row': row
                 })
         self.log_id += 1
-        if state == 'INIT' or state == 'INIT':
+        if state == 'INIT':
             self.log_uid[user] += 1
 
     def get_state(self, user):
