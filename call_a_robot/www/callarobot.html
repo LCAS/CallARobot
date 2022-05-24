@@ -6,15 +6,27 @@ $var params: $:params
 
 
 
-<script>
+<div style="height:100vh; padding-top:15px; padding-bottom:15px" class="section">
+    <script>
 
     function move_state(s) {
         $$('#main_btn').html("");
         $$('#main_btn').prop('disabled', false);
         $$('#main_btn').removeAttr('onclick');
         $$('#main_btn').removeClass('btn-success btn-danger btn-warning btn-default btn-primary');
+        console.log('state change to ' + s)
 
         switch(s) {
+
+            case 'CONNECTED':
+                $$('#main_btn').html('Found server.<br/>Checking...');
+                break;
+
+            case 'REGISTERED': //called on initial connection to server
+            case 'car_INIT': //called on reset or end of task
+                $$('#main_btn').html('Click to<br/>Call A Robot');
+                main_btn_mod('request', 'primary', 'car_call'); break;
+
             case 'car_CALLED':
                 $$('#main_btn').html('Robot is called.<br/>');
                 main_btn_mod('cancel', 'warning', 'car_cancel_task'); break;
@@ -36,11 +48,6 @@ $var params: $:params
                 $$('#main_btn').html('Task Cancelled');
                 main_btn_mod('reset', 'danger', 'car_init'); break;
 
-            case 'INIT':
-            case 'car_INIT':
-                $$('#main_btn').html('~ CallARobot ~');
-                main_btn_mod('request', 'primary', 'car_call'); break;
-
             default:
                 $$('#main_btn').html("STATE Error");
                 main_btn_mod('reset', 'dark', 'car_init'); break;
@@ -56,19 +63,22 @@ $var params: $:params
     function transition(new_state) {
         if (new_state != state) { move_state(new_state); }
         state = new_state;
-        // $$('.logout').html(new_state);
+        $$('.logout').html(new_state);
     }
 
     function _update_orders(data) {
         var states = data['states'];
         for(var key in states) {
             if (key == user) {
+                $$('.logout').html(states[key]);
                 transition(states[key]);
             }
         }
     }
+    function _update_cookie(data) {}
 
     function _set_state(s) {
+        $$('.logout').html(s['state']);
         transition(s['state']);
     }
 
@@ -79,8 +89,7 @@ $var params: $:params
         });
     }
 
-    function _update_position(data) {
-    }
+    function _update_position(data) {}
 
     function register() {
         send({
@@ -103,78 +112,94 @@ $var params: $:params
 
     document.onready = function() {
         webnsock_init('$websocket_url');
+        defaultVariables();
+
         socket.onopen = function () {
             console.log("Connected!");
             register();
             query_state(user);
-
-            $$('.selection').text($$(".dropdown-menu li a").first().text());
-            $$('.selection').val($$(".dropdown-menu li a").first().text());
-
-            $if len(row) > 0:
-                $$('.selection').text('$row');
-                $$('.selection').val('$row');
-
-            row=$$('.selection').val();
-
-            send({
-                'method':'location_update',
-                'row': row,
-                'user': user,
-                'latitude': latitude,
-                'longitude': longitude,
-                'accuracy': accuracy,
-                'rcv_time': Date.now()
-                // 'heading' : heading,
-                // 'velocity' : speed
-            });
-
-
-            {
-                var id, loc_options;
-
-                function loc_success(pos) {
-                    var crd = pos.coords;
-                    var tm = new Date(pos.timestamp);
-
-                    latitude = crd.latitude;
-                    longitude = crd.longitude;
-                    accuracy = crd.accuracy;
-                    // heading = crd.heading;
-                    // speed = crd.speed;
-                    var row = $$('.selection').val();
-                    console.log('new location: ' + latitude + ", " + longitude + 'row: ' + row);
-                    send({
-                        'method':'location_update',
-                        'row': row,
-                        'user': user,
-                        'latitude': latitude,
-                        'longitude': longitude,
-                        'accuracy': accuracy,
-                        'rcv_time': tm.getTime()
-                        // 'heading' : heading,
-                        // 'velocity' : speed
-                    });
-                }
-
-                function loc_error(err) {
-                    console.warn('loc_ERROR(' + err.code + '): ' + err.message);
-                }
-
-                loc_options = {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 30000
-                };
-
-                id = navigator.geolocation.watchPosition(loc_success, loc_error, loc_options);
-            }
-
-
+            onopen();
         };
     }
+
+    function defaultVariables() {
+        console.log("function defaultVariables() {")
+
+        //map = get_cookie("_map");
+        //if (map != null) { activateMapDropdowns(); }
+
+        //robots = get_cookie("_robots");
+        //if (robots != null) { activateRobotsDropdowns(); }
+
+        console.log("default initialisation complete")
+        console.log("  ")
+        console.log("  ")
+    }
+    </script>
+    <script>
+    function onopen() {
+        $$('.selection').text($$(".dropdown-menu li a").first().text());
+        $$('.selection').val($$(".dropdown-menu li a").first().text());
+
+        $if len(row) > 0:
+            $$('.selection').text('$row');
+            $$('.selection').val('$row');
+
+        row=$$('.selection').val();
+
+        send({
+            'method':'location_update',
+            'row': row,
+            'user': user,
+            'latitude': latitude,
+            'longitude': longitude,
+            'accuracy': accuracy,
+            'rcv_time': Date.now()
+            // 'heading' : heading,
+            // 'velocity' : speed
+        });
+
+
+        {
+            var id, loc_options;
+
+            function loc_success(pos) {
+                var crd = pos.coords;
+                var tm = new Date(pos.timestamp);
+
+                latitude = crd.latitude;
+                longitude = crd.longitude;
+                accuracy = crd.accuracy;
+                // heading = crd.heading;
+                // speed = crd.speed;
+                var row = $$('.selection').val();
+                console.log('new location: ' + latitude + ", " + longitude + 'row: ' + row);
+                send({
+                    'method':'location_update',
+                    'row': row,
+                    'user': user,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'accuracy': accuracy,
+                    'rcv_time': tm.getTime()
+                    // 'heading' : heading,
+                    // 'velocity' : speed
+                });
+            }
+
+            function loc_error(err) {
+                console.warn('loc_ERROR(' + err.code + '): ' + err.message);
+            }
+
+            loc_options = {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 30000
+            };
+            id = navigator.geolocation.watchPosition(loc_success, loc_error, loc_options);
+        }
+    }
 </script>
-<div style="height:100vh; padding-top:15px; padding-bottom:15px" class="section">
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-12">

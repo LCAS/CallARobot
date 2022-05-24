@@ -48,17 +48,26 @@ $var params: $:params
         }
 
         switch(s.split('-')[0]) {
+
             case 'sar_EMERGENCY_STOP':
                 break;
 
             case 'sar_EMERGENCY_RESUME':
                 break;
 
-            case 'INIT':
-            case 'sar_INIT':
-                defaultVariables();
-                activateRequiredDropdowns();
-                update_begin_button(s);
+            case 'INIT': //called on callarobot.py initial user identifiction
+                $$('#main_btn').html('Connecting to<br/>server...');
+                break;
+
+            case 'CONNECTED': //called on server acknowledgement of agent
+                $$('#main_btn').html('Waiting for<br/>approval...');
+                break;
+
+            case 'REGISTERED': //called on completion of agent initiation
+            case 'sar_INIT': //called on reset or end of task
+                $$('#main_btn').html('Connected!');
+                //activateRequiredDropdowns();
+                //update_begin_button(s);
                 break;
 
             case 'sar_BEGUN':
@@ -88,7 +97,7 @@ $var params: $:params
                 main_btn_mod('reset', 'default', 'sar_init'); break;
 
             default:
-                $$('#main_btn').html("STATE Error");
+                $$('#main_btn').html("STATE Error<br/><br/>"+s.split('-')[0]);
                 $$('#main_btn').addClass('btn-dark');
                 break;
         }
@@ -109,9 +118,12 @@ $var params: $:params
     }
 
     function transition(new_state) {
+        console.log("  ")
+        console.log("  ")
+        console.log("transition |  " + new_state)
         if (new_state != state || new_state == "sar_EMERGENCY") { new_state=move_state(new_state); }
         state = new_state;
-        //$$('.logout').html(new_state);
+        $$('.logout').html(new_state);
     }
 
     function _update_orders(data) {
@@ -119,11 +131,29 @@ $var params: $:params
         for(var key in states) { if (key == user) { transition(states[key]); } }
     }
 
-    function register() { send({ 'method':'register', 'admin': false, 'user': '$user' }); console.log("registered!"); }
+    var map_data_recieved = false;
+    var task_data_recieved = false;
+    function _update_cookie(data) {
+        console.log('new data: ' + data);
+
+        if (data['key'] == 'map' && map != data['value']) {
+            map = data['value'];
+            activateMapDropdowns();
+        }
+
+        if (data['key'] == 'robots' && robots != data['value']) {
+            robots = data['value'];
+            activateRobotsDropdowns();
+        }
+    }
+
+    function register() {
+        send({ 'method':'register', 'admin': false, 'user': '$user' });
+        console.log("socket.onopen - registered");
+    }
 
     function query_state(u){ send({ 'method':'get_state', 'user': user, }); }
     function _set_state(s) {
-        console.log("_set_state " + s['state'])
         transition(s['state']);
     }
 
@@ -134,14 +164,30 @@ $var params: $:params
 
     document.onready = function() {
         webnsock_init('$websocket_url');
-        defaultVariables();
         socket.onopen = function () {
-            console.log("Connected!");
+            console.log("socket.onopen - connected");
             register();
             query_state(user);
         };
+        defaultVariables();
     }
 </script>
+
+<style>
+#overlay {
+  position: fixed;
+  display: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 2;
+  cursor: pointer;
+}
+</style>
 
 <div style="padding-top:15px" class="section">
     <div class="container-fluid">
@@ -154,6 +200,10 @@ $var params: $:params
                                 <button style="font-size: 63%; float: right;" class="btn btn-warning logout" type="submit">logout</button>
                             </h3>
                         </form>
+                    </div>
+
+                    <div id="overlay" class="refresh_prompt">
+                        <button style="font-size: 63%; float: center;" class="btn" type="submit">logout</button>
                     </div>
 
                     <div class="panel-body">
@@ -278,30 +328,66 @@ var edge2_id = 'all'
 var task_type = 'select'
 var robot_id = 'closest'
 
-function defaultVariables() {
-    map = getRasberryTopoMap()
-    load_tunnels()
 
-    robots = getRobots()
-    load_tasks()
+function defaultVariables() {
+    console.log("function defaultVariables() {")
+
+    map = get_cookie("_map");
+    if (map != null) { activateMapDropdowns(); }
+
+    robots = get_cookie("_robots");
+    if (robots != null) { activateRobotsDropdowns(); }
 
     console.log("default initialisation complete")
+    console.log("  ")
+    console.log("  ")
 }
 
 function activateRequiredDropdowns() {
-    $$('.tunnel_sb').prop("disabled", false)
-    $$('.row_sb').prop("disabled", $$('.tunnel_selection').val() == 'select' || $$('.tunnel_selection').val() == '')
-    $$('.edge1_sb').prop("disabled", $$('.row_selection').val() == 'all' || $$('.row_selection').val() == '')
-    $$('.edge2_sb').prop("disabled", $$('.row_selection').val() == 'all' || $$('.row_selection').val() == '')
-    $$('.task_sb').prop("disabled", false)
-    $$('.robot_sb').prop("disabled", $$('.task_selection').val() == 'select' || $$('.task_selection').val() == '')
+    console.log("activateRequiredDropdowns() {")
+    activateMapDropdowns();
+    activateRobotsDropdowns();
+}
+
+function activateMapDropdowns() {
+    if (map != null && map != "null" && map != "empty") {
+        console.log("enabling map dropdowns")
+        $$('.map_prompt').style.display = "none";
+        $$('.tunnel_sb').prop("disabled", false)
+        $$('.row_sb').prop("disabled", $$('.tunnel_selection').val() == 'select' || $$('.tunnel_selection').val() == '')
+        $$('.edge1_sb').prop("disabled", $$('.row_selection').val() == 'all' || $$('.row_selection').val() == '')
+        $$('.edge2_sb').prop("disabled", $$('.row_selection').val() == 'all' || $$('.row_selection').val() == '')
+    } else {
+        $$('.map_prompt').style.display = "block";
+        $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>No map found.');
+    }
+}
+
+function activateRobotsDropdowns() {
+    if (robots != null && robots != "null" && robots != "empty") {
+        console.log("enabling robot dropdowns")
+        $$('.robots_prompt').style.display = "none";
+        $$('.task_sb').prop("disabled", false)
+        $$('.robot_sb').prop("disabled", $$('.task_selection').val() == 'select' || $$('.task_selection').val() == '')
+    } else {
+        $$('.robots_prompt').style.display = "block";
+        $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>No robots found.');
+    }
 }
 
 function disableDropdowns() {
+    disableDropdowns_map()
+    disableDropdowns_robots()
+}
+
+function disableDropdowns_map() {
     $$('.tunnel_sb').prop("disabled", true)
     $$('.row_sb').prop("disabled", true)
     $$('.edge1_sb').prop("disabled", true)
     $$('.edge2_sb').prop("disabled", true)
+}
+
+function disableDropdowns_robots() {
     $$('.task_sb').prop("disabled", true)
     $$('.robot_sb').prop("disabled", true)
 }
@@ -317,91 +403,91 @@ function get_cookie(name) {
     kv = ca[i].split('=');
     dict[kv[0]] = kv[1];
   }
-  if (name in dict) { return JSON.parse(dict[name].replaceAll("'","\"")); }
+  if (name in dict) {
+    data = dict[name].replaceAll("'","\"");
+    if (data == null || data == "null" || data == "empty") { return data; }
+    return JSON.parse(data);
+  }
+  else if (name == "*") { return dict; }
   return {};
 }
-
-function getRasberryTopoMap() { return get_cookie("_map"); }
-function getRobots() { return get_cookie("_robots"); }
 
 </script>
 
 <script>
 
 function load_tunnels() {
+    console.log("function load_tunnels() {")
     empty_tunnels()
-    $$('.tunnel-ddm')
-        .append('<li style="font-size: 500%;" ><a href="#">select</a></li>')
-        .append('<li role="separator" class="divider"></li>')
+    if (map == null || map == "null" || map == "empty") {
+        console.log("we tried to disable tunnel dropdowns")
+        disableDropdowns_map();
+        return;
+    } else { console.log("you failed to control me map"); }
+    set_style('.tunnel-ddm', 'select')
     for (let i = 0; i < Object.keys(map).length; i++) {
-        $$('.tunnel-ddm')
-            .append('<li style="font-size: 500%;" ><a href="#">'+Object.keys(map)[i]+'</a></li>')
-            .append('<li role="separator" class="divider"></li>') }
+        set_style('.tunnel-ddm', Object.keys(map)[i])
+    }
     $$(".tunnel-ddm li a").click(tunnel_li_a_response);
     $$('.tunnel_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
 
 function load_rows() {
     empty_rows()
-    $$('.row-ddm')
-        .append('<li style="font-size: 500%;" ><a href="#">all</a></li>')
-        .append('<li role="separator" class="divider"></li>')
+    set_style('.row-ddm', 'all')
     for (let i = 0; i < Object.keys(map[tunnel_id]).length; i++) {
-        $$('.row-ddm')
-            .append('<li style="font-size: 500%;" ><a href="#">'+Object.keys(map[tunnel_id])[i]+'</a></li>')
-            .append('<li role="separator" class="divider"></li>') }
+        set_style('.row-ddm', Object.keys(map[tunnel_id])[i])
+    }
     $$(".row-ddm li a").click(row_li_a_response);
     $$('.row_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
 
 function load_edges1() {
     empty_edges1()
-    $$('.edge1-ddm')
-        .append('<li style="font-size: 500%;" ><a href="#">all</a></li>')
-        .append('<li role="separator" class="divider"></li>')
+    set_style('.edge1-ddm', 'all')
     for (let i = 0; i < Object.keys(map[tunnel_id][row_id]).length; i++) {
-        $$('.edge1-ddm')
-            .append('<li style="font-size: 500%;" ><a href="#">'+map[tunnel_id][row_id][i]+'</a></li>')
-            .append('<li role="separator" class="divider"></li>') }
+        set_style('.edge1-ddm', map[tunnel_id][row_id][i])
+    }
     $$(".edge1-ddm li a").click(edge1_li_a_response);
     $$('.edge1_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
 
 function load_edges2() {
     empty_edges2()
-    $$('.edge2-ddm')
-        .append('<li style="font-size: 500%;" ><a href="#">all</a></li>')
-        .append('<li role="separator" class="divider"></li>')
+    set_style('.edge2-ddm', 'all')
     for (let i = 0; i < Object.keys(map[tunnel_id][row_id]).length; i++) {
-        $$('.edge2-ddm')
-            .append('<li style="font-size: 500%;" ><a href="#">'+map[tunnel_id][row_id][i]+'</a></li>')
-            .append('<li role="separator" class="divider"></li>') }
+        set_style('.edge2-ddm', map[tunnel_id][row_id][i])
+    }
     $$(".edge2-ddm li a").click(edge2_li_a_response);
     $$('.edge2_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
 
 
-
-
 function load_tasks() {
+    console.log("function load_tasks() {")
     empty_tasks()
-    $$('.task-ddm')
-        .append('<li style="font-size: 500%;" ><a href="#">select</a></li>')
-        .append('<li role="separator" class="divider"></li>')
+    if (robots == null || robots == "null" || robots == "empty") {
+        console.log("we tried to disable robot dropdowns")
+        disableDropdowns_robots();
+        return;
+    } else { console.log("you failed to control me robots"); }
+    set_style('.task-ddm', 'select')
     for (let i = 0; i < Object.keys(robots['tall']).length; i++) {
-        $$('.task-ddm')
-            .append('<li style="font-size: 500%;" ><a href="#">'+Object.keys(robots['tall'])[i]+'</a></li>')
-            .append('<li role="separator" class="divider"></li>') }
+        set_style('.task-ddm', Object.keys(robots['tall'])[i])
+    }
     $$(".task-ddm li a").click(task_li_a_response);
     $$('.task_sb').prop("disabled", false).removeClass("btn-outline-warning").addClass("btn-warning"); }
 
 function load_robots() {
     empty_robots()
-    $$('.robot-ddm')
-        .append('<li style="font-size: 500%;" ><a href="#">closest</a></li>')
-        .append('<li role="separator" class="divider"></li>')
+    set_style('.robot-ddm', 'closest')
     for (let i = 0; i < Object.keys(robots['tall'][task_type]).length; i++) {
-        $$('.robot-ddm')
-            .append('<li style="font-size: 500%;" ><a href="#">'+robots['tall'][task_type][i]+'</a></li>')
-            .append('<li role="separator" class="divider"></li>') }
+        set_style('.robot-ddm', robots['tall'][task_type][i])
+    }
     $$(".robot-ddm li a").click(robot_li_a_response);
     $$('.robot_sb').prop("disabled", false).removeClass("btn-outline-warning").addClass("btn-warning"); }
+
+
+function set_style(cls, middle) {
+    $$(cls).append('<li style="font-size: 500%;" ><a href="#">'+middle+'</a></li>')
+           .append('<li role="separator" class="divider"></li>')
+}
 
 
 </script>
@@ -423,8 +509,8 @@ function empty_robots() {   $$('.robot-ddm').empty(); $$('.robot_sb').prop("disa
 function tunnel_li_a_response(){
     $$('.tunnel_selection').text($$(this).text());
     $$('.tunnel_selection').val($$(this).text());
-    $$('.row_selection').text("all");
-    $$('.row_selection').val("all");
+        $$('.row_selection').text("all");
+        $$('.row_selection').val("all");
     $$('.edge1_selection').text("");
     $$('.edge1_selection').val("");
     $$('.edge2_selection').text("");
@@ -509,8 +595,8 @@ function task_li_a_response() {
 }
 
 function robot_li_a_response() {
-    $$(this).parents(".btn-group").find('.robot_selection').text($$(this).text());
-    $$(this).parents(".btn-group").find('.robot_selection').val($$(this).text());
+    $$('.robot_selection').text($$(this).text());
+    $$('.robot_selection').val($$(this).text());
     robot_id = $$('.robot_selection').val()
     console.log('new robot: ' + $$('.robot_selection').val());
 }

@@ -130,6 +130,21 @@ class CARState:
                 'states': self.states
             })
 
+    def send_updated_info(self, key, value, extra_socket=None):
+        if extra_socket is None:
+            addressees = set([])
+        else:
+            addressees = {extra_socket}
+        addressees = addressees.union(self.clients)
+        for m in addressees:
+            info('send info to manager %s' % str(m))
+            m.sendJSON({
+                'method': 'update_cookie',
+                'key': key,
+                'value': value
+            })
+        # self.send_updated_states(extra_sockets=extra_sockets)
+
     def send_update_position(self, user, lat, long, acc, ts, row):
         for m in self.admin_clients:
             info('send pos update  %s' % str(m))
@@ -212,31 +227,43 @@ class CARWebServer(webnsock.WebServer):
                 print("\n\n\nGET "+self.ri_type)
                 self.user = web.cookies().get('_%s_user'%self.ri_ref)
                 print("user: " + str(self.user))
-                self_app.car_states.users[self.user] = web.ctx
+
+                logged_in_users = self_app.car_states.users.keys()
+                if self.user: self_app.car_states.users[self.user] = web.ctx
+
                 self_app.params = {
                     'n_users': len(self_app.car_states.users),
                     'users': list(self_app.car_states.users)
                 }
+
                 if self.user is None:
-                    print("user is None: " + str(self.user))
+                    #browser has not accessed car before
+                    print("user is None, move to login page")
                     return self_app._renderer.login(self_app.params, self_app.get_text, self.path, self.ri_type)
+
+                elif self.user == '':
+                    print("user is is invalid, cannot be empty")
+                    return self_app._renderer.login(self_app.params, self_app.get_text, self.path, self.ri_type)
+
                 else:
-                    print("user is not None: " + str(self.user))
-                    return self.INIT()
+                    print("user is valid")
+
+                if self.user not in logged_in_users:
+                    #user saved in cookie not initialised in current webserver session
+                    print("user is not currently logged in")
+                    self_app.car_states.send_new_user(self.ri_ref, self.user)
+                return self.INIT()
 
             def INIT(self):
                 print("This needs to be overloaded.")
 
             def POST(self):
-                print('RI.POST')
+                print('\n\n\nRI.POST')
                 user_data = web.input(username='')
                 self.user = user_data.username
                 if self.user is not '':
                     info('login as %s' % user_data)
                     web.setcookie('_%s_user'%self.ri_ref, self.user)
-                    #####publish here
-                    self_app.car_states.send_new_user(self.ri_ref, self.user)
-
                 else:
                     web.setcookie('_%s_user'%self.ri_ref, '', -1)
                 print('RI.seeother : '+ self.path)
@@ -249,10 +276,20 @@ class CARWebServer(webnsock.WebServer):
 
             def INIT(self):
                 req = ['_map','_robots']
-                if any([i not in server_details for i in req]):
-                    return self_app._renderer.resourcemissing(self_app.params, self.user)
+
+                #test if required server details have been initialised
+                # if any([i not in server_details for i in req]):
+                #     return self_app._renderer.resourcemissing(self_app.params, self.user)
+                #this needs to be checked on the page itself
+
+                #add server details to cookies list for user (default to null if not found)
                 for r in req:
-                    web.setcookie(r,server_details[r])
+                    if r in server_details:
+                        web.setcookie(r,server_details[r])
+                    else:
+                        web.setcookie(r, 'null')
+
+                #send them the constructed page
                 return self_app._renderer.sendarobot(self_app.params, self_app.get_text, self.user, self_app.websocket_url)
 
 
@@ -353,9 +390,10 @@ class CARProtocol(webnsock.JsonWSProtocol):
     def on_set_state(self, payload):
         print("\n\n")
         if '/info/' in payload['user']:
-            cookie = '_'+payload['user'].split('/')[-1]
+            cookie = '_'+payload['user'].split('/')[-1] #/car_client/info/robots -> "_robots"
             info('cookie set of name %s: %s' % (cookie, payload['state']))
             server_details[cookie] = payload['state']
+            self.car_states.send_updated_info(key=cookie, value=server_details[cookie], extra_socket=self)
         else:
             info('update state for user %s: %s' % (payload['user'], payload['state']))
             self.update_state(payload['user'], payload['state'])
@@ -409,7 +447,6 @@ class CARProtocol(webnsock.JsonWSProtocol):
         # initialise the user if not already done
         if user not in self.car_states.states:
             self.car_states.get_state(user)
-            #####publish here
         self.car_states.set_state(user, state, self.log_user)
         self.send_updated_states()
 
