@@ -7,13 +7,13 @@ $var params: $:params
 
     function update_begin_button(s) {
         if (s == 'sar_BEGIN' || s == 'INIT' || s == 'sar_INIT') {
-            if (tunnel_id=="select" || task_type=="select") {
-                $$('#main_btn').html('Select a tunnel <br/>and task type');
+            if (row_id=="select" || task_type=="select") {
+                $$('#main_btn').html('Select a row <br/>and task type');
                 $$('#main_btn').prop('disabled', true);
                 $$('#main_btn').removeClass('btn-primary');
             } else {
                 $$('#main_btn').html('Make Request');
-                $$('#main_btn').attr('onClick', "send({'method':'sar_begin_edge_task', 'user': user, 'tunnel':tunnel_id, 'row':row_id, 'edge1':edge1_id, 'edge2':edge2_id, 'task':task_type, 'robot':robot_id});");
+                $$('#main_btn').attr('onClick', "send({'method':'sar_begin_edge_task', 'user': user, 'row':row_id, 'edge1':edge1_id, 'edge2':edge2_id, 'task':task_type, 'robot':robot_id});");
                 $$('#main_btn').addClass('btn-primary');
                 $$('#main_btn').prop('disabled', false);
             }
@@ -210,19 +210,6 @@ $var params: $:params
                         <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
                             <div class="btn-group btn-group-lg" role="group">
                                 <div class="dropdown">
-                                    <button style="font-size: 500%;" class="btn btn-lg btn-success dropdown-toggle tunnel_sb"
-                                            type="button" id="dropdownMenu1"
-                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                                        Tunnel: <span class="tunnel_selection"></span> <span class="caret"></span>
-                                    </button>
-                                    <ul class="dropdown-menu tunnel-ddm" style="width: 100%;" aria-labelledby="dropdownMenu1">
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
-                            <div class="btn-group btn-group-lg" role="group">
-                                <div class="dropdown">
                                     <button style="font-size: 500%;" class="btn btn-lg btn-outline-success dropdown-toggle row_sb"
                                             type="button" id="dropdownMenu2" disabled=true
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
@@ -320,8 +307,7 @@ $var params: $:params
 var map
 var robots
 
-var tunnel_id = 'select'
-var row_id = 'all'
+var row_id = 'select'
 var edge1_id = 'all'
 var edge2_id = 'all'
 
@@ -353,10 +339,9 @@ function activateMapDropdowns() {
     if (map != null && map != "null" && map != "empty") {
         console.log("enabling map dropdowns")
         $$('.map_prompt').style.display = "none";
-        $$('.tunnel_sb').prop("disabled", false)
-        $$('.row_sb').prop("disabled", $$('.tunnel_selection').val() == 'select' || $$('.tunnel_selection').val() == '')
-        $$('.edge1_sb').prop("disabled", $$('.row_selection').val() == 'all' || $$('.row_selection').val() == '')
-        $$('.edge2_sb').prop("disabled", $$('.row_selection').val() == 'all' || $$('.row_selection').val() == '')
+        $$('.row_sb').prop("disabled", false)
+        $$('.edge1_sb').prop("disabled", $$('.row_selection').val() == 'select' || $$('.row_selection').val() == '')
+        $$('.edge2_sb').prop("disabled", $$('.row_selection').val() == 'select' || $$('.row_selection').val() == '')
     } else {
         $$('.map_prompt').style.display = "block";
         $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>No map found.');
@@ -381,7 +366,6 @@ function disableDropdowns() {
 }
 
 function disableDropdowns_map() {
-    $$('.tunnel_sb').prop("disabled", true)
     $$('.row_sb').prop("disabled", true)
     $$('.edge1_sb').prop("disabled", true)
     $$('.edge2_sb').prop("disabled", true)
@@ -416,26 +400,17 @@ function get_cookie(name) {
 
 <script>
 
-function load_tunnels() {
-    console.log("function load_tunnels() {")
-    empty_tunnels()
+function load_rows() {
+    console.log("function load_rows() {")
     if (map == null || map == "null" || map == "empty") {
-        console.log("we tried to disable tunnel dropdowns")
+        console.log("we tried to disable row dropdowns")
         disableDropdowns_map();
         return;
     } else { console.log("you failed to control me map"); }
-    set_style('.tunnel-ddm', 'select')
-    for (let i = 0; i < Object.keys(map).length; i++) {
-        set_style('.tunnel-ddm', Object.keys(map)[i])
-    }
-    $$(".tunnel-ddm li a").click(tunnel_li_a_response);
-    $$('.tunnel_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
-
-function load_rows() {
     empty_rows()
     set_style('.row-ddm', 'all')
-    for (let i = 0; i < Object.keys(map[tunnel_id]).length; i++) {
-        set_style('.row-ddm', Object.keys(map[tunnel_id])[i])
+    for (let i = 0; i < Object.keys(map).length; i++) {
+        set_style('.row-ddm', Object.keys(map)[i])
     }
     $$(".row-ddm li a").click(row_li_a_response);
     $$('.row_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
@@ -443,8 +418,8 @@ function load_rows() {
 function load_edges1() {
     empty_edges1()
     set_style('.edge1-ddm', 'all')
-    for (let i = 0; i < Object.keys(map[tunnel_id][row_id]).length; i++) {
-        set_style('.edge1-ddm', map[tunnel_id][row_id][i])
+    for (let i = 0; i < Object.keys(map[row_id]).length; i++) {
+        set_style('.edge1-ddm', map[row_id][i])
     }
     $$(".edge1-ddm li a").click(edge1_li_a_response);
     $$('.edge1_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
@@ -452,8 +427,8 @@ function load_edges1() {
 function load_edges2() {
     empty_edges2()
     set_style('.edge2-ddm', 'all')
-    for (let i = 0; i < Object.keys(map[tunnel_id][row_id]).length; i++) {
-        set_style('.edge2-ddm', map[tunnel_id][row_id][i])
+    for (let i = 0; i < Object.keys(map[row_id]).length; i++) {
+        set_style('.edge2-ddm', map[row_id][i])
     }
     $$(".edge2-ddm li a").click(edge2_li_a_response);
     $$('.edge2_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
@@ -494,8 +469,7 @@ function set_style(cls, middle) {
 
 <script>
 
-function empty_tunnels() { $$('.tunnel-ddm').empty(); }
-function empty_rows() {       $$('.row-ddm').empty();   $$('.row_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); row_id='all'; }
+function empty_rows() {       $$('.row-ddm').empty(); }
 function empty_edges1() {   $$('.edge1-ddm').empty(); $$('.edge1_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); edge1_id='all'; }
 function empty_edges2() {   $$('.edge2-ddm').empty(); $$('.edge2_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); edge2_id='all'; }
 function empty_tasks() {     $$('.task-ddm').empty(); }
@@ -505,33 +479,6 @@ function empty_robots() {   $$('.robot-ddm').empty(); $$('.robot_sb').prop("disa
 </script>
 
 <script>
-
-function tunnel_li_a_response(){
-    $$('.tunnel_selection').text($$(this).text());
-    $$('.tunnel_selection').val($$(this).text());
-        $$('.row_selection').text("all");
-        $$('.row_selection').val("all");
-    $$('.edge1_selection').text("");
-    $$('.edge1_selection').val("");
-    $$('.edge2_selection').text("");
-    $$('.edge2_selection').val("");
-    console.log('new tunnel: ' + $$('.tunnel_selection').val());
-    tunnel_id = $$('.tunnel_selection').val()
-    if ($$('.tunnel_selection').val() != 'select') {
-        load_rows()
-    } else {
-        $$('.row_selection').text("");
-        $$('.row_selection').val("");
-        $$('.edge1_selection').text("");
-        $$('.edge1_selection').val("");
-        $$('.edge2_selection').text("");
-        $$('.edge2_selection').val("");
-        empty_rows()
-    }
-    empty_edges1()
-    empty_edges2()
-    update_begin_button(state)
-}
 
 function row_li_a_response() {
     $$('.row_selection').text($$(this).text());
@@ -553,6 +500,7 @@ function row_li_a_response() {
         empty_edges1()
         empty_edges2()
     }
+    update_begin_button(state)
 }
 
 function edge1_li_a_response() {
