@@ -3,7 +3,7 @@
 import webnsock
 import web
 from signal import signal, SIGINT
-from os import path
+from os import path, getenv
 from logging import error, warn, info, debug, basicConfig, INFO, exception
 
 from csv import DictWriter
@@ -31,8 +31,13 @@ class CARState:
         self.users = {}
         self.gps = defaultdict(dict)
 
-        for u in self.users: self.set_state(u, 'INIT')
-        self.log_filename = 'call-a-robot-'+datetime.now().strftime("%Y%m%d-%H%M%S") + '.csv'
+        for u in self.users:
+            self.set_state(u, 'INIT')
+
+        log_dir = getenv('CAR_LOG_DIR', '.')
+        self.log_filename = \
+            log_dir + '/' + \
+            'call-a-robot-' + datetime.now().strftime("%Y%m%d-%H%M%S") + '.csv'
         self.csvfile = open(self.log_filename, 'w', 0)
         self.log_fieldnames = [
             'id', 'timestamp', 'datetime', 'user', 'log_user', 'uid',
