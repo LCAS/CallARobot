@@ -102,3 +102,4 @@ ENV/
 
 *.csv
 .vscode/
+conf/Car-Forwarders-Config.py
