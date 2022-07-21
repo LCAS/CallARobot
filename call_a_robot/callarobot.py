@@ -22,6 +22,7 @@ import requests
 basicConfig(level=INFO)
 
 
+server_details = dict()
 class CARState:
 
     def __init__(self):
@@ -131,6 +132,7 @@ class CARState:
             })
 
     def send_updated_info(self, key, value, extra_socket=None):
+        server_details[key]=value
         if extra_socket is None:
             addressees = set([])
         else:
@@ -162,7 +164,6 @@ class CARState:
 
 
 car_states = CARState()
-server_details = dict()
 
 class CARWebServer(webnsock.WebServer):
 
@@ -283,10 +284,14 @@ class CARWebServer(webnsock.WebServer):
                 #this needs to be checked on the page itself
 
                 #add server details to cookies list for user (default to null if not found)
+                print(req)
                 for r in req:
                     if r in server_details:
+                        print("Setting cookie %s:"%r)
+                        print(server_details[r])
                         web.setcookie(r,server_details[r])
                     else:
+                        print("Setting cookie %s: as null"%r)
                         web.setcookie(r, 'null')
 
                 #send them the constructed page

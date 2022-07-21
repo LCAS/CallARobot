@@ -67,7 +67,8 @@ $var params: $:params
             case 'sar_INIT': //called on reset or end of task
                 $$('#main_btn').html('Connected!');
                 //activateRequiredDropdowns();
-                //update_begin_button(s);
+                update_begin_button(s);
+                
                 break;
 
             case 'sar_BEGUN':
@@ -134,15 +135,32 @@ $var params: $:params
     var map_data_recieved = false;
     var task_data_recieved = false;
     function _update_cookie(data) {
-        console.log('new data: ' + data);
+        console.log('new data: ' + data['key']);
+        console.log(data['value'])
 
-        if (data['key'] == 'map' && map != data['value']) {
-            map = data['value'];
+        if (data['key'] == '_map' && map != data['value']) {
+            fdata = data['value'].replaceAll("'","\"");
+            if (fdata == null || fdata == "null" || fdata == "empty") { 
+                console.log("map here")
+                map=fdata; 
+            }
+            else { 
+                console.log("map here 2")
+                map=JSON.parse(fdata); 
+            }
             activateMapDropdowns();
         }
 
-        if (data['key'] == 'robots' && robots != data['value']) {
-            robots = data['value'];
+        if (data['key'] == '_robots' && robots != data['value']) {
+            fdata = data['value'].replaceAll("'","\"");
+            if (fdata == null || fdata == "null" || fdata == "empty") {
+                console.log("robots here")
+                robots=fdata;
+            }
+            else {
+                console.log("robots here 2")
+                robots=JSON.parse(fdata); 
+            }
             activateRobotsDropdowns();
         }
     }
@@ -163,6 +181,7 @@ $var params: $:params
     user = '$user';
 
     document.onready = function() {
+        console.log(decodeURIComponent(document.cookie).split('; '));
         webnsock_init('$websocket_url');
         socket.onopen = function () {
             console.log("socket.onopen - connected");
@@ -317,11 +336,14 @@ var robot_id = 'closest'
 
 function defaultVariables() {
     console.log("function defaultVariables() {")
+    console.log(decodeURIComponent(document.cookie).split('; '));
 
     map = get_cookie("_map");
+    console.log(map)
     if (map != null) { activateMapDropdowns(); }
 
     robots = get_cookie("_robots");
+    console.log(robots)
     if (robots != null) { activateRobotsDropdowns(); }
 
     console.log("default initialisation complete")
@@ -336,14 +358,14 @@ function activateRequiredDropdowns() {
 }
 
 function activateMapDropdowns() {
+    console.log("ActivateMapDropdowns")
     if (map != null && map != "null" && map != "empty") {
         console.log("enabling map dropdowns")
-        $$('.map_prompt').style.display = "none";
         $$('.row_sb').prop("disabled", false)
         $$('.edge1_sb').prop("disabled", $$('.row_selection').val() == 'select' || $$('.row_selection').val() == '')
         $$('.edge2_sb').prop("disabled", $$('.row_selection').val() == 'select' || $$('.row_selection').val() == '')
+        load_rows()
     } else {
-        $$('.map_prompt').style.display = "block";
         $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>No map found.');
     }
 }
@@ -351,11 +373,10 @@ function activateMapDropdowns() {
 function activateRobotsDropdowns() {
     if (robots != null && robots != "null" && robots != "empty") {
         console.log("enabling robot dropdowns")
-        $$('.robots_prompt').style.display = "none";
         $$('.task_sb').prop("disabled", false)
         $$('.robot_sb').prop("disabled", $$('.task_selection').val() == 'select' || $$('.task_selection').val() == '')
+        load_tasks()
     } else {
-        $$('.robots_prompt').style.display = "block";
         $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>No robots found.');
     }
 }
@@ -381,6 +402,7 @@ function disableDropdowns_robots() {
 
 <script>
 function get_cookie(name) {
+  console.log(decodeURIComponent(document.cookie).split('; '));
   let ca = decodeURIComponent(document.cookie).split('; ');
   let dict = {};
   for(let i = 0; i <ca.length; i++) {
@@ -408,9 +430,11 @@ function load_rows() {
         return;
     } else { console.log("you failed to control me map"); }
     empty_rows()
+    set_style('.row-ddm', 'select')
     set_style('.row-ddm', 'all')
-    for (let i = 0; i < Object.keys(map).length; i++) {
-        set_style('.row-ddm', Object.keys(map)[i])
+    
+    for (let i = 0; i < Object.keys(map['tall']).length; i++) {
+        set_style('.row-ddm', Object.keys(map['tall'])[i])
     }
     $$(".row-ddm li a").click(row_li_a_response);
     $$('.row_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
@@ -418,8 +442,8 @@ function load_rows() {
 function load_edges1() {
     empty_edges1()
     set_style('.edge1-ddm', 'all')
-    for (let i = 0; i < Object.keys(map[row_id]).length; i++) {
-        set_style('.edge1-ddm', map[row_id][i])
+    for (let i = 0; i < Object.keys(map['tall'][row_id]).length; i++) {
+        set_style('.edge1-ddm', map['tall'][row_id][i])
     }
     $$(".edge1-ddm li a").click(edge1_li_a_response);
     $$('.edge1_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
@@ -427,8 +451,8 @@ function load_edges1() {
 function load_edges2() {
     empty_edges2()
     set_style('.edge2-ddm', 'all')
-    for (let i = 0; i < Object.keys(map[row_id]).length; i++) {
-        set_style('.edge2-ddm', map[row_id][i])
+    for (let i = 0; i < Object.keys(map['tall'][row_id]).length; i++) {
+        set_style('.edge2-ddm', map['tall'][row_id][i])
     }
     $$(".edge2-ddm li a").click(edge2_li_a_response);
     $$('.edge2_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
