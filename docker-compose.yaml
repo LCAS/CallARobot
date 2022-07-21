@@ -20,6 +20,8 @@ services:
     volumes:
       - ./logs:/car_logs
   car_forwards:
+    depends_on:
+      - car
     build: .
     image: lcas.lincoln.ac.uk/lcas/car-forwarders:latest
     restart: always
@@ -30,6 +32,7 @@ services:
       - ./conf/Car-Forwarders-Config.py:/CAR-Forwarders/Config.py:ro
     #command: ["env"]
     #command: ["python", "callarobot.py"]
+
     #environment:
       # We are tkaking the Google Maps API key form a .env file (or set it before docker-compose up)
       #GMAPS_API: ${GMAPS_API:-define_your_API_key_in_a_dot_env_file}
