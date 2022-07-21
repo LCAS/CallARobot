@@ -7,11 +7,11 @@ run `sudo pip install -r requirements.txt`
 
 ## Start Server
 
-* run as `WEBSOCKET_URL="wss://lcas.lincoln.ac.uk/car/ws" python callarobot.py`
+* run as `WEBSOCKET_URL="wss://lcas.lincoln.ac.uk/rasberry/ws" python callarobot.py`
 
 ## Start Client (usues ROS if available)
 
-* run as `WEBSOCKET_URL="wss://lcas.lincoln.ac.uk/car/ws" python ws_client.py`
+* run as `WEBSOCKET_URL="wss://lcas.lincoln.ac.uk/rasberry/ws" python ws_client.py`
 
 ## Using as ROS Client
 
@@ -38,16 +38,16 @@ The demo client `ws_client` will start as ROS node if it find `rospy` module
 ## Apache config
 
 ```
-<Location /car>
+<Location /rasberry/car>
     SSLRequireSSL
     SetEnv proxy-initial-not-pooled
     Order allow,deny
     Allow from all
     ProxyPass http://localhost:8127/car
-    ProxyPassReverse http://localhost:8127/car
+    ProxyPassReverse http://localhost:8127/rasberry/car
 </Location>
 
-<LocationMatch "/car/ws">
+<LocationMatch "/rasberry/car/ws">
     SSLRequireSSL
     ProxyPassMatch ws://localhost:8128/ disablereuse=On
     ProxyPassReverse ws://localhost:8128/
