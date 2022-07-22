@@ -40,7 +40,7 @@ $var params: $:params
         $$(id).html("");
         $$(id).removeClass('btn-success btn-danger btn-warning btn-default btn-primary');
         switch(s) {
-            case 'CALLED':
+            case 'car_CALLED':
             case 'INIT':
             default:
                 break;
@@ -61,7 +61,7 @@ $var params: $:params
                 );
                 $$(id).addClass('btn-success');
                 break;
-            case 'CALLED':
+            case 'car_CALLED':
                 $$(id).html("$:text('Accept')");
                 $$(id).attr(
                     'onClick',
