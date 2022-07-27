@@ -78,7 +78,7 @@ $var params: $:params
     function _update_cookie(data) {}
 
     function _set_state(s) {
-        $$('.logout').html(s['state']);//
+        $$('.logout').html(s['state']);
         transition(s['state']);
     }
 
@@ -88,6 +88,24 @@ $var params: $:params
             'user': user,
         });
     }
+
+
+
+    function _closest_nodes(data) {
+        var nodes = data['nodes'];
+        for(var key in nodes) { 
+            if (key == user) {
+                $$('.closest_node').text(nodes[key]);
+                $$('.closest_node').val(nodes[key]);
+            }
+        }
+    }
+    function _set_closest_node(payload) {
+        var node = payload['node'];
+        $$('.closest_node').text(node);
+        $$('.closest_node').val(node);
+    }
+
 
     function _update_position(data) {}
 
@@ -147,6 +165,12 @@ $var params: $:params
         row=$$('.selection').val();
 
         send({
+            'method':'get_closest_node',
+            'user': user,
+        });
+
+
+        send({
             'method':'location_update',
             'row': row,
             'user': user,
@@ -171,11 +195,12 @@ $var params: $:params
                 accuracy = crd.accuracy;
                 // heading = crd.heading;
                 // speed = crd.speed;
-                var row = $$('.selection').val();
-                console.log('new location: ' + latitude + ", " + longitude + 'row: ' + row);
+                // var row = $$('.selection').val();
+                $$('#logger').text('loc: ' + latitude + '|' + longitude);
+                console.log('new location: ' + latitude + '|' + longitude);
                 send({
                     'method':'location_update',
-                    'row': row,
+                    'row': '',
                     'user': user,
                     'latitude': latitude,
                     'longitude': longitude,
@@ -187,12 +212,13 @@ $var params: $:params
             }
 
             function loc_error(err) {
+                $$('#logger').text(err.message);
                 console.warn('loc_ERROR(' + err.code + '): ' + err.message);
             }
 
             loc_options = {
                 enableHighAccuracy: true,
-                timeout: 5000,
+                timeout: 10000,
                 maximumAge: 30000
             };
             id = navigator.geolocation.watchPosition(loc_success, loc_error, loc_options);
@@ -215,16 +241,19 @@ $var params: $:params
                         <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
                             <div class="btn-group btn-group-lg" role="group">
                                 <div class="dropdown">
-                                    <button style="font-size: 500%;" class="btn btn-lg btn-success dropdown-toggle"
-                                            type="button" id="dropdownMenu1"
-                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                                        Picking Row: <span class="selection"></span> <span class="caret"></span>
+                                    <button id="logger" style="font-size: 500%;" class="btn btn-lg btn-error dropdown-toggle" type="button">logger...</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-body">
+                        <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
+                            <div class="btn-group btn-group-lg" role="group">
+                                <div class="dropdown">
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-success dropdown-toggle" type="button">
+                                        Closest Node: <span class="closest_node"></span> <span class="caret"></span>
                                     </button>
-                                    <ul class="dropdown-menu"  style="width: 100%;" aria-labelledby="dropdownMenu1">
-                                        $for r in rows:
-                                            <li style="font-size: 300%;" ><a href="#">$r</a></li>
-                                            <li role="separator" class="divider"></li>
-                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -243,25 +272,3 @@ $var params: $:params
         </div>
     </div>
 </div>
-
-<script>
-     $$(".dropdown-menu li a").click(function(){
-        $$(this).parents(".btn-group").find('.selection').text($$(this).text());
-        $$(this).parents(".btn-group").find('.selection').val($$(this).text());
-        row=$$('.selection').val();
-        console.log('new location row: ' + row);
-        send({
-            'method':'location_update', 
-            'row': row,
-            'user': user,
-            'latitude': latitude,
-            'longitude': longitude,
-            'accuracy': accuracy,
-            'rcv_time': Date.now()
-            // 'heading' : heading,
-            // 'velocity' : speed
-        });                  
-
-    });
-
-</script>

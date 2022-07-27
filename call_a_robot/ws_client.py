@@ -50,6 +50,15 @@ class WSClient(Thread):
             'method': 'get_states'
         }))
 
+    def set_closest_node(self, user, node):
+        """ Websockert callback from ROS """
+        if self.ws:
+            self.ws.send(dumps({
+                'method': 'set_closest_node',
+                'node': node,
+                'user': user
+            }))
+
     def set_state(self, user, state):
         if self.ws:
             self.ws.send(dumps({
@@ -57,6 +66,7 @@ class WSClient(Thread):
                 'state': state,
                 'user': user
             }))
+
 
     def run(self):
         while True:
@@ -124,12 +134,19 @@ if __name__ == "__main__":
         def set_state(msg):
             payload = loads(msg.data)
             ws_client.set_state(user=payload['user'], state=payload['state'])
-
         def set_state_kv(msg):
             ws_client.set_state(user=msg.key, state=msg.value)
-
         rospy.Subscriber('~set_states', String, set_state)
         rospy.Subscriber('~set_states_kv', KeyValue, set_state_kv)
+
+
+        def set_closest_node(msg):
+            payload = loads(msg.data)
+            ws_client.set_closest_node(user=payload['user'], node=payload['node'])
+        def set_closest_node_kv(msg):
+            ws_client.set_closest_node(user=msg.key, node=msg.value)
+        rospy.Subscriber('~set_closest_node', String, set_closest_node)
+        rospy.Subscriber('~set_closest_node_kv', KeyValue, set_closest_node_kv)
 
         ws_client.start()
         info_topic_dict = dict()

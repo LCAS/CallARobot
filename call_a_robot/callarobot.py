@@ -31,6 +31,7 @@ class CARState:
         self.admin_clients = set([])
         self.users = {}
         self.gps = defaultdict(dict)
+        self.closest_nodes = {}
 
         for u in self.users:
             self.set_state(u, 'INIT')
@@ -95,12 +96,40 @@ class CARState:
         if state == 'INIT' or state == 'INIT':
             self.log_uid[user] += 1
 
+    def get_closest_node(self, user):
+        """ Triggered by client request for closest node. """
+        print('CAR_STATE::get_closest_node')
+        if user not in self.closest_nodes:
+            self.closest_nodes[user] = 'none'
+        return self.closest_nodes[user]
+    def set_closest_node(self, user, node, extra_socket=None):
+        print('CAR_STATE::set_closest_node')
+        """ Triggered by server setting closest node information. """
+        self.closest_nodes[user] = node
+        if extra_socket is None:
+            addressees = set([])
+        else:
+            addressees = {extra_socket}
+        addressees = addressees.union(self.clients)
+        for m in addressees:
+            m.sendJSON({
+                'method': 'set_closest_node',
+                'user': user,
+                'node': node
+            })
+
+
+
     def get_state(self, user):
+        """ Triggered by new client interfaces to request state details. """
         if user not in self.states:
             self.states[user] = 'INIT'
+            self.send_new_user('car', user) #sar+car use this already, pcd does not, pcd base from car
         return self.states[user]
 
     def set_state(self, user, state, log_user="", latitude=-1, longitude=-1, row=''):  #this publishes to ATM
+        """ Triggered by client, to send new state to server. """
+        """ Triggered by /orders, to send new state to server+clients? """
         prev_state = self.states[user]
         self.states[user] = state
         if latitude == -1 and user in self.gps and 'latitude' in self.gps[user]:
@@ -115,6 +144,7 @@ class CARState:
         self.log(user, state, log_user, latitude, longitude, row)
 
     def send_new_user(self, ri_ref, user):
+        """ Triggered by client, to notify server of new connections. """
         for m in self.clients:
             info('send notification of new %s agent (%s) to manager %s' % (ri_ref, user, str(m)))
             m.sendJSON({
@@ -124,6 +154,7 @@ class CARState:
             })
 
     def send_updated_states(self, extra_socket=None):
+        """ Triggered by server, updates each clinet of their new state. """
         if extra_socket is None:
             addressees = set([])
         else:
@@ -136,7 +167,23 @@ class CARState:
                 'states': self.states
             })
 
+    def send_closest_nodes(self, extra_socket=None):
+        print('CAR_STATE::send_closest_nodes')
+        """ Triggered by server, updates client of their new closest node. """
+        if extra_socket is None:
+            addressees = set([])
+        else:
+            addressees = {extra_socket}
+        addressees = addressees.union(self.clients)
+        for m in addressees:
+            info('send update to manager %s' % str(m))
+            m.sendJSON({
+                'method': 'closest_nodes',
+                'nodes': self.closest_nodes
+            })
+
     def send_updated_info(self, key, value, extra_socket=None):
+        """ Triggered by server, updates client with their new information. """
         server_details[key]=value
         if extra_socket is None:
             addressees = set([])
@@ -150,9 +197,9 @@ class CARState:
                 'key': key,
                 'value': value
             })
-        # self.send_updated_states(extra_sockets=extra_sockets)
 
     def send_update_position(self, user, lat, long, acc, ts, row):
+        """ Triggered by clients, to send admin the locations of clients (for /orders)."""
         for m in self.admin_clients:
             info('send pos update  %s' % str(m))
             m.sendJSON({
@@ -163,8 +210,6 @@ class CARState:
                 'accu': acc,
                 'timestamp': ts,
                 'row': row
-                # 'heading': heading,
-                # 'velocity':velocity
             })
 
 
@@ -175,7 +220,7 @@ class CARWebServer(webnsock.WebServer):
     def __init__(self):
         self.car_states = car_states
         self.is_running = True
-        self.websocket_url = getenv('WEBSOCKET_URL', '')  # 'wss://lcas.lincoln.ac.uk/car/ws' a localhost websocket url is not accessible from other devices
+        self.websocket_url = getenv('WEBSOCKET_URL', '')
         self.gmaps_api = getenv('GMAPS_API', 'XXX')
         self.rows_str = getenv('CAR_ROWS', 'A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6')
         self.rows = self.rows_str.split(' ')
@@ -328,35 +373,6 @@ class CARWebServer(webnsock.WebServer):
                 print('bak2login: ' + self.user)
                 return self_app._renderer.login(self_app.params, self_app.get_text, self.path, self.ri_type)
 
-
-        # class Orders(self.page):
-        #     path = self_app.ns+'/orders/'
-        #
-        #     def GET(self):
-        #         print("\n\n\nGET "+self.ri_type)
-        #         user = web.cookies().get('_admin_user')
-        #         print("user: " + str(self.user))
-        #
-        #         self_app.params = {
-        #             'n_users': len(self_app.car_states.users),
-        #             'users': list(self_app.car_states.users)
-        #         }
-        #         if user is None:
-        #             return self_app._renderer.login(self_app.params, self_app.get_text, user, self_app.ns+'/orders')
-        #         else:
-        #             return self_app._renderer.orders(self_app.params, self_app.get_text, self_app.websocket_url, self_app.gmaps_api)
-        #
-        #     def POST(self):
-        #         user_data = web.input(username='')
-        #
-        #         user = user_data.username
-        #         if user == 'lcas':
-        #             info('admin login as %s' % user_data)
-        #             web.setcookie('_admin_user', user)
-        #         else:
-        #             web.setcookie('_admin_user', '', -1)
-        #         return web.seeother(self_app.ns+'/orders')
-
         class Redirector(self.page):
             def GET(self): return web.seeother(self.path.rstrip('/#')+'/')
 
@@ -430,14 +446,14 @@ class CARProtocol(webnsock.JsonWSProtocol):
         self.car_states.gps[payload['user']] = {
             'latitude': payload['latitude'],
             'longitude': payload['longitude'],
-            'row': payload['row']   
+            'row': ''
         }
         self.car_states.log(
             payload['user'],
             state='GPS',
             latitude=payload['latitude'],
             longitude=payload['longitude'],
-            row=payload['row'],
+            row='',
         )
         self.car_states.send_update_position(
             payload['user'],
@@ -445,9 +461,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
             payload['longitude'],
             payload['accuracy'],
             payload['rcv_time'],
-            payload['row']
-            # payload['heading'],
-            # payload['velocity']
+            ''
             )
 
     def send_updated_states(self):
@@ -478,6 +492,19 @@ class CARProtocol(webnsock.JsonWSProtocol):
             'method': 'set_state',
             'state': self.car_states.get_state(payload['user'])
         }
+
+    def on_set_closest_node(self, payload):
+        info('server set new closest_node for %s' % payload['user'])
+        self.car_states.set_closest_node(payload['user'], payload['node'])
+
+    def on_get_closest_node(self, payload):
+        print("\n")
+        info('user %s requested closest_node' % payload['user'])
+        return {
+            'method': 'set_closest_node',
+            'node': self.car_states.get_closest_node(payload['user'])
+        }
+
 
 
 
