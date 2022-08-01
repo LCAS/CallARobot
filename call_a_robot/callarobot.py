@@ -348,6 +348,13 @@ class CARProtocol(webnsock.JsonWSProtocol):
 
     def on_location_update(self, payload):
         info('GPS update: ' + str(payload))
+
+        if payload['user'] not in self.car_states.users:
+            # we got a GPS from somebody yet unknown
+            info('got GPS from unregistered user, so init them now.')
+            self.car_states.users[payload['user']] = payload['user']
+            self.update_state(payload['user'], 'INIT')
+
         self.car_states.gps[payload['user']] = {
             'latitude': payload['latitude'],
             'longitude': payload['longitude'],
