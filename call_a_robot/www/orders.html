@@ -89,11 +89,11 @@ $var params: $:params
                 $$(id).html("$:text('Loaded. Click and return robot')");
                 $$(id).attr(
                     'onClick',
-                    "send({'method':'set_state', state: 'INIT','user': \""+user+"\"});"
+                    "send({'method':'set_state', state: 'car_INIT','user': \""+user+"\"});"
                 );
                 $$(id).addClass('btn-warning');
                 break;
-            case 'INIT':
+            case 'car_INIT':
             default:
                 $$(id).html("$text('idle')");
                 $$(id).prop('disabled', true);
@@ -249,7 +249,7 @@ $var params: $:params
                                                     class="btn btn-sm btn-danger"
                                                     onclick="send({
                                                         'method':'set_state', 
-                                                        'state': 'INIT',
+                                                        'state': 'car_INIT',
                                                         'user': '$u'});">
                                                     reset
                                                 </button>
