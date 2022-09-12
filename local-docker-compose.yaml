@@ -1,0 +1,55 @@
+
+version: '3'
+services:
+  car:
+    build: .
+    image: local-car:latest
+    restart: always
+    #command: ["env"]
+    #command: ["python", "callarobot.py"]
+    ports:
+      - 8127:8127
+      - 8128:8128
+    environment:
+      # We are tkaking the Google Maps API key form a .env file (or set it before docker-compose up)
+      PYTHONUNBUFFERED: 1
+      GMAPS_API: ${GMAPS_API:-define_your_API_key_in_a_dot_env_file}
+      CAR_ROWS: ${CAR_ROWS:-1 2 3 4 5 6 7 8 9 10 11 12}
+      WEBSOCKET_URL: ${WEBSOCKET_URL:-wss://lcas.lincoln.ac.uk/rasberry/ws}
+      CAR_LOG_DIR: "/car_logs"
+    volumes:
+      - ./logs:/car_logs
+
+  car_forwards_MtoW:
+    #depends_on:
+    #  - car
+    image: local-car-forwarders:latest
+    restart: always
+    build: 
+      context: .
+      dockerfile: Dockerfile.forwarders 
+    volumes:
+      - ./conf/Car-Forwarders-Config.py:/CAR-Forwarders/Config.py:ro
+    environment:
+      # We are tkaking the Google Maps API key form a .env file (or set it before docker-compose up)
+      PYTHONUNBUFFERED: 1
+
+  car_forwards_WtoM:
+    #depends_on:
+    #  - car
+    image: local-car-forwarders:latest
+    restart: always
+    build: 
+      context: .
+      dockerfile: Dockerfile.forwarders 
+    volumes:
+      - ./conf/Car-Forwarders-Config.py:/CAR-Forwarders/Config.py:ro
+    command: ["python", "WtoM.py"]
+    environment:
+      # We are tkaking the Google Maps API key form a .env file (or set it before docker-compose up)
+      PYTHONUNBUFFERED: 1
+      #GMAPS_API: ${GMAPS_API:-define_your_API_key_in_a_dot_env_file}
+      #CAR_ROWS: ${CAR_ROWS:-1 2 3 4 5 6 7 8 9 10 11 12}
+      #WEBSOCKET_URL: ${WEBSOCKET_URL:-wss://lcas.lincoln.ac.uk/car/ws}
+      #CAR_LOG_DIR: "/car_logs"
+    

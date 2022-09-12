@@ -8,3 +8,5 @@
 [submodule "CAR-Forwarders"]
 	path = CAR-Forwarders
 	url = https://github.com/LCAS/CAR-Forwarders.git
+	ignore = dirty
+
