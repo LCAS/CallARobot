@@ -199,7 +199,7 @@ class CARState:
                 'value': value
             })
 
-    def send_update_position(self, user, lat, long, acc, ts, row):
+    def send_update_position(self, user, lat, long, acc, ts, row, hdop, vdop ):
         """ Triggered by clients, to send admin the locations of clients (for /orders)."""
         for m in self.admin_clients:
             info('send pos update  %s' % str(m))
@@ -210,7 +210,9 @@ class CARState:
                 'long': long,
                 'accu': acc,
                 'timestamp': ts,
-                'row': row
+                'row': row,
+                'hdop' : hdop,
+                'vdop' : vdop
             })
 
 
@@ -471,7 +473,9 @@ class CARProtocol(webnsock.JsonWSProtocol):
             payload['longitude'],
             payload['accuracy'],
             payload['rcv_time'],
-            ''
+            '',
+            payload['HDOP'],
+            payload['VDOP'],
             )
 
     def send_updated_states(self):
