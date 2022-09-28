@@ -35,6 +35,7 @@ class CARState:
 
         for u in self.users:
             self.set_state(u, 'INIT')
+            self.send_new_user('car', u) #TODO: fix this later, SAR might have problems
 
         log_dir = getenv('CAR_LOG_DIR', '.')
         self.log_filename = \
@@ -198,7 +199,7 @@ class CARState:
                 'value': value
             })
 
-    def send_update_position(self, user, lat, long, acc, ts, row):
+    def send_update_position(self, user, lat, long, acc, ts, row, hdop, vdop ):
         """ Triggered by clients, to send admin the locations of clients (for /orders)."""
         for m in self.admin_clients:
             info('send pos update  %s' % str(m))
@@ -209,7 +210,9 @@ class CARState:
                 'long': long,
                 'accu': acc,
                 'timestamp': ts,
-                'row': row
+                'row': row,
+                'hdop' : hdop,
+                'vdop' : vdop
             })
 
 
@@ -435,6 +438,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
                 info('new user %s registered' % payload['user'])
                 self.car_states.users[payload['user']] = payload['user']
                 self.update_state(payload['user'], 'INIT')
+            self.car_states.send_new_user('car', payload['user']) #TODO: fix this later, SAR might have problems
         self.log_user = payload['user']
 
     def on_get_states(self, payload):
@@ -449,6 +453,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
             info('got GPS from unregistered user, so init them now.')
             self.car_states.users[payload['user']] = payload['user']
             self.update_state(payload['user'], 'INIT')
+            self.car_states.send_new_user('car', payload['user']) #TODO: fix this later, SAR might have problems
 
         self.car_states.gps[payload['user']] = {
             'latitude': payload['latitude'],
@@ -468,7 +473,9 @@ class CARProtocol(webnsock.JsonWSProtocol):
             payload['longitude'],
             payload['accuracy'],
             payload['rcv_time'],
-            ''
+            '',
+            payload['HDOP'],
+            payload['VDOP'],
             )
 
     def send_updated_states(self):

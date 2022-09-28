@@ -57,7 +57,7 @@ $var params: $:params
                 $$(id).html("$:text('Dash Button pressed. Accept!')");
                 $$(id).attr(
                     'onClick',
-                    "send({'method':'set_state', state: 'ACCEPT','user': \""+user+"\"});"
+                    "send({'method':'set_state', state: 'car_ACCEPT','user': \""+user+"\"});"
                 );
                 $$(id).addClass('btn-success');
                 break;
@@ -65,35 +65,35 @@ $var params: $:params
                 $$(id).html("$:text('Accept')");
                 $$(id).attr(
                     'onClick',
-                    "send({'method':'set_state', state: 'ACCEPT','user': \""+user+"\"});"
+                    "send({'method':'set_state', state: 'car_ACCEPT','user': \""+user+"\"});"
                 );
                 $$(id).addClass('btn-success');
                 break;
-            case 'ACCEPT':
+            case 'car_ACCEPT':
                 $$(id).html("$:text('click when arrived')");
                 $$(id).attr(
                     'onClick',
-                    "send({'method':'set_state', state: 'ARRIVED','user': \""+user+"\"});"
+                    "send({'method':'set_state', state: 'car_ARRIVED','user': \""+user+"\"});"
                 );
                 $$(id).addClass('btn-warning');
                 break;
-            case 'ARRIVED':
+            case 'car_ARRIVED':
                 $$(id).html("$:text('Arrived at picker. Click when loaded or wait.')");                
                 $$(id).attr(
                     'onClick',
-                    "send({'method':'set_state', state: 'LOADED','user': \""+user+"\"});"
+                    "send({'method':'set_state', state: 'car_LOADED','user': \""+user+"\"});"
                 );
                 $$(id).addClass('btn-warning');
                 break;
-            case 'LOADED':
+            case 'car_LOADED':
                 $$(id).html("$:text('Loaded. Click and return robot')");
                 $$(id).attr(
                     'onClick',
-                    "send({'method':'set_state', state: 'INIT','user': \""+user+"\"});"
+                    "send({'method':'set_state', state: 'car_INIT','user': \""+user+"\"});"
                 );
                 $$(id).addClass('btn-warning');
                 break;
-            case 'INIT':
+            case 'car_INIT':
             default:
                 $$(id).html("$text('idle')");
                 $$(id).prop('disabled', true);
@@ -249,7 +249,7 @@ $var params: $:params
                                                     class="btn btn-sm btn-danger"
                                                     onclick="send({
                                                         'method':'set_state', 
-                                                        'state': 'INIT',
+                                                        'state': 'car_INIT',
                                                         'user': '$u'});">
                                                     reset
                                                 </button>
