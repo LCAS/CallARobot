@@ -467,16 +467,29 @@ class CARProtocol(webnsock.JsonWSProtocol):
             longitude=payload['longitude'],
             row='',
         )
-        self.car_states.send_update_position(
-            payload['user'],
-            payload['latitude'],
-            payload['longitude'],
-            payload['accuracy'],
-            payload['rcv_time'],
-            '',
-            payload['HDOP'],
-            payload['VDOP'],
-            )
+        if 'HDOP' in payload:
+            self.car_states.send_update_position(
+                payload['user'],
+                payload['latitude'],
+                payload['longitude'],
+                payload['accuracy'],
+                payload['rcv_time'],
+                '', #row
+                payload['HDOP'],
+                payload['VDOP'],
+                )
+        else:
+            self.car_states.send_update_position(
+                payload['user'],
+                payload['latitude'],
+                payload['longitude'],
+                payload['accuracy'],
+                payload['rcv_time'],
+                '', #row
+                '', #hdop
+                '', #vdop
+                )
+
 
     def send_updated_states(self):
         self.car_states.send_updated_states(self)
