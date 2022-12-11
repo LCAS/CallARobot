@@ -230,7 +230,7 @@ class CARWebServer(webnsock.WebServer):
         self.params = {'n_users': len(self.car_states.users),
                        'users': list(self.car_states.users)}
 
-        self.ns = getenv('CAR_NS', "/rasberry")
+        self.ns = getenv('WEBSOCKET_NAMESPACE', "/rasberry")
         ws_url = self.ns+'/'
         www = path.join(path.dirname(__file__),'www')
 
