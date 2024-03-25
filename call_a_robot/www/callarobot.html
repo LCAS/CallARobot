@@ -1,0 +1,274 @@
+$def with (params, text, user, rows, websocket_url, row)
+$var title: CallARobot
+$var jsfiles: 
+$var params: $:params
+
+
+
+
+<div style="height:100vh; padding-top:15px; padding-bottom:15px" class="section">
+    <script>
+
+    function move_state(s) {
+        $$('#main_btn').html("");
+        $$('#main_btn').prop('disabled', false);
+        $$('#main_btn').removeAttr('onclick');
+        $$('#main_btn').removeClass('btn-success btn-danger btn-warning btn-default btn-primary');
+        console.log('state change to ' + s)
+
+        switch(s) {
+
+            case 'INIT':
+            case 'CONNECTED':
+                $$('#main_btn').html('Found server.<br/>Checking...');
+                break;
+
+            case 'REGISTERED': //called on initial connection to server
+            case 'car_INIT': //called on reset or end of task
+                $$('#main_btn').html('Click to<br/>Call A Robot');
+                main_btn_mod('request', 'primary', 'car_call'); break;
+
+            case 'car_CALLED':
+                $$('#main_btn').html('Robot is called.<br/>');
+                main_btn_mod('cancel', 'warning', 'car_cancel_task'); break;
+
+            case 'car_ACCEPT':
+                $$('#main_btn').html('Robot is called.<br/>Robot is on its way.');
+                main_btn_mod('cancel', 'warning', 'car_cancel_task'); break;
+
+            case 'car_ARRIVED':
+                $$('#main_btn').html('Robot is here.');
+                main_btn_mod('load', 'success', 'car_load'); break;
+
+            case 'car_LOADED':
+            case 'car_COMPLETE':
+                $$('#main_btn').html('Task Completed.<br/>Robot will leave.');
+                main_btn_mod('reset', 'success', 'car_init'); break;
+
+            case 'car_CANCEL':
+                $$('#main_btn').html('Task Cancelled');
+                main_btn_mod('reset', 'danger', 'car_init'); break;
+
+            default:
+                $$('#main_btn').html("STATE Error");
+                main_btn_mod('reset', 'dark', 'car_init'); break;
+        }
+    }
+
+    function main_btn_mod(txt, cls, method) {
+        $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>Click to '+txt+'.')
+        $$('#main_btn').addClass('btn-'+cls);
+        $$('#main_btn').attr('onClick', "send({'method':'"+method+"', 'user': user});");
+    }
+
+    function transition(new_state) {
+        if (new_state != state) { move_state(new_state); }
+        state = new_state;
+        $$('.logout').html(new_state); //
+    }
+
+    function _update_orders(data) {
+        var states = data['states'];
+        for(var key in states) {
+            if (key == user) {
+                transition(states[key]);
+            }
+        }
+    }
+    function _update_cookie(data) {}
+
+    function _set_state(s) {
+        $$('.logout').html(s['state']);
+        transition(s['state']);
+    }
+
+    function query_state(u){
+        send({
+            'method':'get_state',
+            'user': user,
+        });
+    }
+
+
+
+    function _closest_nodes(data) {
+        var nodes = data['nodes'];
+        for(var key in nodes) { 
+            if (key == user) {
+                $$('.closest_node').text(nodes[key]);
+                $$('.closest_node').val(nodes[key]);
+            }
+        }
+    }
+    function _set_closest_node(payload) {
+        var node = payload['node'];
+        $$('.closest_node').text(node);
+        $$('.closest_node').val(node);
+    }
+
+
+    function _update_position(data) {}
+
+    function register() {
+        send({
+            'method':'register',
+            'admin': false,
+            'user': '$user'
+        });
+        console.log("registered!");
+    }
+
+    // globals
+    latitude = -1;
+    longitude = -1;
+    accuracy = -1;
+    row='';
+
+    state = '';
+    user = '$user';
+
+
+    document.onready = function() {
+        webnsock_init('$websocket_url');
+        defaultVariables();
+
+        socket.onopen = function () {
+            console.log("Connected!");
+            register();
+            query_state(user);
+            onopen();
+        };
+    }
+
+    function defaultVariables() {
+        console.log("function defaultVariables() {")
+
+        //map = get_cookie("_map");
+        //if (map != null) { activateMapDropdowns(); }
+
+        //robots = get_cookie("_robots");
+        //if (robots != null) { activateRobotsDropdowns(); }
+
+        console.log("default initialisation complete")
+        console.log("  ")
+        console.log("  ")
+    }
+    
+    function onopen() {
+        $$('.selection').text($$(".dropdown-menu li a").first().text());
+        $$('.selection').val($$(".dropdown-menu li a").first().text());
+
+        $if len(row) > 0:
+            $$('.selection').text('$row');
+            $$('.selection').val('$row');
+
+        row=$$('.selection').val();
+
+        send({
+            'method':'get_closest_node',
+            'user': user,
+        });
+
+
+        send({
+            'method':'location_update',
+            'row': row,
+            'user': user,
+            'latitude': latitude,
+            'longitude': longitude,
+            'accuracy': accuracy,
+            'rcv_time': Date.now()
+            // 'heading' : heading,
+            // 'velocity' : speed
+        });
+
+
+        {
+            var id, loc_options;
+
+            function loc_success(pos) {
+                var crd = pos.coords;
+                var tm = new Date(pos.timestamp);
+
+                latitude = crd.latitude;
+                longitude = crd.longitude;
+                accuracy = crd.accuracy;
+                // heading = crd.heading;
+                // speed = crd.speed;
+                // var row = $$('.selection').val();
+                $$('#logger').text('loc: ' + latitude + '|' + longitude);
+                console.log('new location: ' + latitude + '|' + longitude);
+                send({
+                    'method':'location_update',
+                    'row': '',
+                    'user': user,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'accuracy': accuracy,
+                    'rcv_time': tm.getTime()
+                    // 'heading' : heading,
+                    // 'velocity' : speed
+                });
+            }
+
+            function loc_error(err) {
+                $$('#logger').text(err.message);
+                console.warn('loc_ERROR(' + err.code + '): ' + err.message);
+            }
+
+            loc_options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 30000
+            };
+            id = navigator.geolocation.watchPosition(loc_success, loc_error, loc_options);
+        }
+    }
+</script>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div  class="panel panel-primary">
+                    <div class="panel-heading">
+                        <form action="#" method="post">
+                            <h3 style="font-size: 500%;" class="panel-title">User: $user
+                                <button style="font-size: 63%; float: right;" class="btn btn-warning logout" type="submit">logout</button>
+                            </h3>
+                        </form>
+                    </div>
+
+                    <div class="panel-body">
+                        <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
+                            <div class="btn-group btn-group-lg" role="group">
+                                <div class="dropdown">
+                                    <button id="logger" style="font-size: 500%;" class="btn btn-lg btn-error dropdown-toggle" type="button">logger...</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-body">
+                        <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
+                            <div class="btn-group btn-group-lg" role="group">
+                                <div class="dropdown">
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-success dropdown-toggle" type="button">
+                                        Closest Node: <span class="closest_node"></span> <span class="caret"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="" role="group">
+                            <button style="font-size: 10vw; min-height: 80vh;"
+                                    id="main_btn"
+                                    disabled=true
+                                    class="btn btn-block btn-lg">Initialising...
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

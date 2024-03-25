@@ -1,0 +1,577 @@
+$def with (params, text, user, websocket_url)
+$var title: SendARobot
+$var jsfiles:
+$var params: $:params
+
+<script>
+
+    function update_begin_button(s) {
+        if (s == 'sar_BEGIN' || s == 'INIT' || s == 'sar_INIT') {
+            if (row_id=="select" || task_type=="select") {
+                $$('#main_btn').html('Select a row <br/>and task type');
+                $$('#main_btn').prop('disabled', true);
+                $$('#main_btn').removeClass('btn-primary');
+            } else {
+                $$('#main_btn').html('Make Request');
+                $$('#main_btn').attr('onClick', "send({'method':'sar_begin_edge_task', 'user': user, 'row':row_id, 'edge1':edge1_id, 'edge2':edge2_id, 'task':task_type, 'robot':robot_id});");
+                $$('#main_btn').addClass('btn-primary');
+                $$('#main_btn').prop('disabled', false);
+            }
+        }
+    }
+
+    let non_emergency = '';
+    function move_state(s) {
+        $$('#main_btn').html("");
+        $$('#main_btn').prop('disabled', false);
+        $$('#main_btn').removeAttr('onclick');
+        $$('#main_btn').removeClass('btn-success btn-danger btn-warning btn-default btn-primary');
+
+        switch(s.split('-')[0]) {
+            case 'sar_EMERGENCY_STOP':
+                $$('#emergency_btn').html("Click to Resume");
+                $$('#emergency_btn').attr('onClick', "send({'method':'sar_emergency_resume', 'user': user});");
+
+                $$('#main_btn').html("EMERGENCY<br/>PAUSE");
+                main_btn_mod('cancel task', 'danger', 'sar_cancel_task');
+
+                non_emergency = state;
+                break;
+
+            case 'sar_EMERGENCY_RESUME':
+                s = non_emergency;
+            case 'sar_CANCEL':
+                $$('#emergency_btn').html("Emergency Stop");
+                $$('#emergency_btn').attr('onClick', "send({'method':'sar_emergency_stop', 'user': user});");
+                non_emergency = '';
+                break;
+        }
+
+        switch(s.split('-')[0]) {
+
+            case 'sar_EMERGENCY_STOP':
+                break;
+
+            case 'sar_EMERGENCY_RESUME':
+                break;
+
+            case 'INIT': //called on callarobot.py initial user identifiction
+                $$('#main_btn').html('Connecting to<br/>server...');
+                break;
+
+            case 'CONNECTED': //called on server acknowledgement of agent
+                $$('#main_btn').html('Waiting for<br/>approval...');
+                break;
+
+            case 'REGISTERED': //called on completion of agent initiation
+            case 'sar_INIT': //called on reset or end of task
+                $$('#main_btn').html('Connected!');
+                //activateRequiredDropdowns();
+                update_begin_button(s);
+                
+                break;
+
+            case 'sar_BEGUN':
+                $$('#main_btn').html('Awaiting server<br/>confirmation.');
+                main_btn_mod('cancel', 'default', 'sar_cancel_task'); break;
+
+            case 'sar_AWAIT_START':
+                $$('#main_btn').html('Robot moving to<br/>start location.');
+                main_btn_mod('cancel', 'default', 'sar_cancel_task'); break;
+
+            case 'sar_AWAIT_TASK_COMPLETION':
+                $$('#main_btn').html('Robot has begun<br/>'+task_type.replace('_',' ')+'.');
+                main_btn_mod('cancel', 'primary', 'sar_cancel_task'); break;
+
+            case 'sar_COMPLETE':
+                $$('#main_btn').html('All task stages<br/>are complete.');
+                main_btn_mod('reset', 'success', 'sar_init'); break;
+
+            case 'sar_CANCEL':
+                emergency_btn_reset();
+                $$('#main_btn').html('TASK CANCELLED');
+                main_btn_mod('reset', 'danger', 'sar_init'); break;
+
+            case 'sar_CANCEL_REMOTE':
+                emergency_btn_reset();
+                $$('#main_btn').html('TASK CANCELLED<br/>REMOTELY');
+                main_btn_mod('reset', 'default', 'sar_init'); break;
+
+            default:
+                $$('#main_btn').html("STATE Error<br/><br/>"+s.split('-')[0]);
+                $$('#main_btn').addClass('btn-dark');
+                break;
+        }
+        return s
+    }
+
+    function emergency_btn_reset() {
+        $$('#emergency_btn').html("Emergency Stop");
+        non_emergency = '';
+        paused = false;
+    }
+
+    function main_btn_mod(txt, cls, method) {
+        $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>Click to '+txt+'.')
+        $$('#main_btn').addClass('btn-'+cls);
+        $$('#main_btn').attr('onClick', "send({'method':'"+method+"', 'user': user});");
+        disableDropdowns();
+    }
+
+    function transition(new_state) {
+        console.log("  ")
+        console.log("  ")
+        console.log("transition |  " + new_state)
+        if (new_state != state || new_state == "sar_EMERGENCY") { new_state=move_state(new_state); }
+        state = new_state;
+        $$('.logout').html(new_state);
+    }
+
+    function _update_orders(data) {
+        var states = data['states'];
+        for(var key in states) { if (key == user) { transition(states[key]); } }
+    }
+
+    var map_data_recieved = false;
+    var task_data_recieved = false;
+    function _update_cookie(data) {
+        console.log('new data: ' + data['key']);
+        console.log(data['value'])
+
+        if (data['key'] == '_map' && map != data['value']) {
+            fdata = data['value'].replaceAll("'","\"");
+            if (fdata == null || fdata == "null" || fdata == "empty") { 
+                console.log("map here")
+                map=fdata; 
+            }
+            else { 
+                console.log("map here 2")
+                map=JSON.parse(fdata); 
+            }
+            activateMapDropdowns();
+        }
+
+        if (data['key'] == '_robots' && robots != data['value']) {
+            fdata = data['value'].replaceAll("'","\"");
+            if (fdata == null || fdata == "null" || fdata == "empty") {
+                console.log("robots here")
+                robots=fdata;
+            }
+            else {
+                console.log("robots here 2")
+                robots=JSON.parse(fdata); 
+            }
+            activateRobotsDropdowns();
+        }
+    }
+
+    function register() {
+        send({ 'method':'register', 'admin': false, 'user': '$user' });
+        console.log("socket.onopen - registered");
+    }
+
+    function query_state(u){ send({ 'method':'get_state', 'user': user, }); }
+    function _set_state(s) {
+        transition(s['state']);
+    }
+
+
+    // globals
+    state = '';
+    user = '$user';
+
+    document.onready = function() {
+        console.log(decodeURIComponent(document.cookie).split('; '));
+        webnsock_init('$websocket_url');
+        socket.onopen = function () {
+            console.log("socket.onopen - connected");
+            register();
+            query_state(user);
+        };
+        defaultVariables();
+    }
+</script>
+
+<style>
+#overlay {
+  position: fixed;
+  display: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 2;
+  cursor: pointer;
+}
+</style>
+
+<div style="padding-top:15px" class="section">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <form action="#" method="post">
+                            <h3 style="font-size: 500%;" class="panel-title">User: $user
+                                <button style="font-size: 63%; float: right;" class="btn btn-warning logout" type="submit">logout</button>
+                            </h3>
+                        </form>
+                    </div>
+
+                    <div id="overlay" class="refresh_prompt">
+                        <button style="font-size: 63%; float: center;" class="btn" type="submit">logout</button>
+                    </div>
+
+                    <div class="panel-body">
+                        <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
+                            <div class="btn-group btn-group-lg" role="group">
+                                <div class="dropdown">
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-success dropdown-toggle row_sb"
+                                            type="button" id="dropdownMenu2" disabled=true
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                        Row: <span class="row_selection"></span> <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu row-ddm" style="width: 100%;" aria-labelledby="dropdownMenu2">
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
+                            <div class="btn-group btn-group-lg" role="group" style="padding-right:2px">
+                                <div class="dropdown">
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-success dropdown-toggle edge1_sb"
+                                            type="button" id="dropdownMenu3a" disabled=true
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                        From: <span class="edge1_selection"></span> <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu edge1-ddm" style="width: 100%;" aria-labelledby="dropdownMenu3a">
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="btn-group btn-group-lg" role="group" style="padding-left:2px">
+                                <div class="dropdown">
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-success dropdown-toggle edge2_sb"
+                                            type="button" id="dropdownMenu3b" disabled=true
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                        To: <span class="edge2_selection"></span> <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu edge2-ddm" style="width: 100%;" aria-labelledby="dropdownMenu3b">
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-body">
+                        <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
+                            <div class="btn-group btn-group-lg" role="group">
+                                <div class="dropdown">
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-warning dropdown-toggle task_sb"
+                                            type="button" id="dropdownMenu4"
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                        Select Task: <span class="task_selection"></span> <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu task-ddm" style="width: 100%;" aria-labelledby="dropdownMenu4">
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="btn-group btn-group-lg btn-group-justified" style="padding-bottom:5px" role="group">
+                            <div class="btn-group btn-group-lg" role="group">
+                                <div class="dropdown">
+                                    <button style="font-size: 500%;" class="btn btn-lg btn-outline-warning dropdown-toggle robot_sb"
+                                            type="button" id="dropdownMenu5" disabled=true
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                        Select Robot:<br> <span class="robot_selection"></span> <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu robot-ddm" style="width: 100%;" aria-labelledby="dropdownMenu5">
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-body">
+                        <div class="" role="group">
+                            <button style="font-size: 10vw; min-height: 35vh;"
+                                    id="main_btn"
+                                    onclick="send({ 'method':'sar_begin_task', 'user': user, 'row': row });"
+                                    disabled=true
+                                    class="btn btn-block btn-lg">Initialising...
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="panel-body">
+                        <div role="group">
+                            <button style="font-size: 10vw; min-height: 10vh;"
+                                    id="emergency_btn"
+                                    onclick="send({ 'method':'sar_emergency_stop', 'user': user });"
+                                    class="btn btn-block btn-lg btn-danger">Emergency Stop</button>
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<script>
+var map
+var robots
+
+var row_id = 'select'
+var edge1_id = 'all'
+var edge2_id = 'all'
+
+var task_type = 'select'
+var robot_id = 'closest'
+
+
+function defaultVariables() {
+    console.log("function defaultVariables() {")
+    console.log(decodeURIComponent(document.cookie).split('; '));
+
+    map = get_cookie("_map");
+    console.log(map)
+    if (map != null) { activateMapDropdowns(); }
+
+    robots = get_cookie("_robots");
+    console.log(robots)
+    if (robots != null) { activateRobotsDropdowns(); }
+
+    console.log("default initialisation complete")
+    console.log("  ")
+    console.log("  ")
+}
+
+function activateRequiredDropdowns() {
+    console.log("activateRequiredDropdowns() {")
+    activateMapDropdowns();
+    activateRobotsDropdowns();
+}
+
+function activateMapDropdowns() {
+    console.log("ActivateMapDropdowns")
+    if (map != null && map != "null" && map != "empty") {
+        console.log("enabling map dropdowns")
+        $$('.row_sb').prop("disabled", false)
+        $$('.edge1_sb').prop("disabled", $$('.row_selection').val() == 'select' || $$('.row_selection').val() == '')
+        $$('.edge2_sb').prop("disabled", $$('.row_selection').val() == 'select' || $$('.row_selection').val() == '')
+        load_rows()
+    } else {
+        $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>No map found.');
+    }
+}
+
+function activateRobotsDropdowns() {
+    if (robots != null && robots != "null" && robots != "empty") {
+        console.log("enabling robot dropdowns")
+        $$('.task_sb').prop("disabled", false)
+        $$('.robot_sb').prop("disabled", $$('.task_selection').val() == 'select' || $$('.task_selection').val() == '')
+        load_tasks()
+    } else {
+        $$('#main_btn').html($$('#main_btn').html()+'<br/><br/>No robots found.');
+    }
+}
+
+function disableDropdowns() {
+    disableDropdowns_map()
+    disableDropdowns_robots()
+}
+
+function disableDropdowns_map() {
+    $$('.row_sb').prop("disabled", true)
+    $$('.edge1_sb').prop("disabled", true)
+    $$('.edge2_sb').prop("disabled", true)
+}
+
+function disableDropdowns_robots() {
+    $$('.task_sb').prop("disabled", true)
+    $$('.robot_sb').prop("disabled", true)
+}
+
+
+</script>
+
+<script>
+function get_cookie(name) {
+  console.log(decodeURIComponent(document.cookie).split('; '));
+  let ca = decodeURIComponent(document.cookie).split('; ');
+  let dict = {};
+  for(let i = 0; i <ca.length; i++) {
+    kv = ca[i].split('=');
+    dict[kv[0]] = kv[1];
+  }
+  if (name in dict) {
+    data = dict[name].replaceAll("'","\"");
+    if (data == null || data == "null" || data == "empty") { return data; }
+    return JSON.parse(data);
+  }
+  else if (name == "*") { return dict; }
+  return {};
+}
+
+</script>
+
+<script>
+
+function load_rows() {
+    console.log("function load_rows() {")
+    if (map == null || map == "null" || map == "empty") {
+        console.log("we tried to disable row dropdowns")
+        disableDropdowns_map();
+        return;
+    } else { console.log("you failed to control me map"); }
+    empty_rows()
+    set_style('.row-ddm', 'select')
+    set_style('.row-ddm', 'all')
+    
+    for (let i = 0; i < Object.keys(map['tall']).length; i++) {
+        set_style('.row-ddm', Object.keys(map['tall'])[i])
+    }
+    $$(".row-ddm li a").click(row_li_a_response);
+    $$('.row_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
+
+function load_edges1() {
+    empty_edges1()
+    set_style('.edge1-ddm', 'all')
+    for (let i = 0; i < Object.keys(map['tall'][row_id]).length; i++) {
+        set_style('.edge1-ddm', map['tall'][row_id][i])
+    }
+    $$(".edge1-ddm li a").click(edge1_li_a_response);
+    $$('.edge1_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
+
+function load_edges2() {
+    empty_edges2()
+    set_style('.edge2-ddm', 'all')
+    for (let i = 0; i < Object.keys(map['tall'][row_id]).length; i++) {
+        set_style('.edge2-ddm', map['tall'][row_id][i])
+    }
+    $$(".edge2-ddm li a").click(edge2_li_a_response);
+    $$('.edge2_sb').prop("disabled", false).removeClass("btn-outline-success").addClass("btn-success"); }
+
+
+function load_tasks() {
+    console.log("function load_tasks() {")
+    empty_tasks()
+    if (robots == null || robots == "null" || robots == "empty") {
+        console.log("we tried to disable robot dropdowns")
+        disableDropdowns_robots();
+        return;
+    } else { console.log("you failed to control me robots"); }
+    set_style('.task-ddm', 'select')
+    for (let i = 0; i < Object.keys(robots['tall']).length; i++) {
+        set_style('.task-ddm', Object.keys(robots['tall'])[i])
+    }
+    $$(".task-ddm li a").click(task_li_a_response);
+    $$('.task_sb').prop("disabled", false).removeClass("btn-outline-warning").addClass("btn-warning"); }
+
+function load_robots() {
+    empty_robots()
+    set_style('.robot-ddm', 'closest')
+    for (let i = 0; i < Object.keys(robots['tall'][task_type]).length; i++) {
+        set_style('.robot-ddm', robots['tall'][task_type][i])
+    }
+    $$(".robot-ddm li a").click(robot_li_a_response);
+    $$('.robot_sb').prop("disabled", false).removeClass("btn-outline-warning").addClass("btn-warning"); }
+
+
+function set_style(cls, middle) {
+    $$(cls).append('<li style="font-size: 500%;" ><a href="#">'+middle+'</a></li>')
+           .append('<li role="separator" class="divider"></li>')
+}
+
+
+</script>
+
+<script>
+
+function empty_rows() {       $$('.row-ddm').empty(); }
+function empty_edges1() {   $$('.edge1-ddm').empty(); $$('.edge1_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); edge1_id='all'; }
+function empty_edges2() {   $$('.edge2-ddm').empty(); $$('.edge2_sb').prop("disabled", true).addClass("btn-outline-success").removeClass("btn-success"); edge2_id='all'; }
+function empty_tasks() {     $$('.task-ddm').empty(); }
+function empty_robots() {   $$('.robot-ddm').empty(); $$('.robot_sb').prop("disabled", true).addClass("btn-outline-warning").removeClass("btn-warning"); robot_id='closest'; }
+
+
+</script>
+
+<script>
+
+function row_li_a_response() {
+    $$('.row_selection').text($$(this).text());
+    $$('.row_selection').val($$(this).text());
+    $$('.edge1_selection').text("all");
+    $$('.edge1_selection').val("all");
+    $$('.edge2_selection').text("all");
+    $$('.edge2_selection').val("all");
+    console.log('new row: ' + $$('.row_selection').val());
+    row_id = $$('.row_selection').val()
+    if ($$('.row_selection').val() != 'all') {
+        load_edges1()
+        load_edges2()
+    } else {
+        $$('.edge1_selection').text("");
+        $$('.edge1_selection').val("");
+        $$('.edge2_selection').text("");
+        $$('.edge2_selection').val("");
+        empty_edges1()
+        empty_edges2()
+    }
+    update_begin_button(state)
+}
+
+function edge1_li_a_response() {
+    $$('.edge1_selection').text($$(this).text());
+    $$('.edge1_selection').val($$(this).text());
+    edge1_id = $$('.edge1_selection').val()
+    console.log('new edge1: ' + $$('.edge1_selection').val());
+    if ($$('.edge1_selection').val() == 'all') {
+        $$('.edge2_selection').text("all");
+        $$('.edge2_selection').val("all");
+        edge2_id = 'all';
+    }
+}
+
+function edge2_li_a_response() {
+    $$('.edge2_selection').text($$(this).text());
+    $$('.edge2_selection').val($$(this).text());
+    edge2_id = $$('.edge2_selection').val()
+    console.log('new edge2: ' + $$('.edge2_selection').val());
+    if ($$('.edge2_selection').val() == 'all') {
+        $$('.edge1_selection').text("all");
+        $$('.edge1_selection').val("all");
+        edge1_id = 'all';
+    }
+}
+
+function task_li_a_response() {
+    $$('.task_selection').text($$(this).text());
+    $$('.task_selection').val($$(this).text());
+    $$('.robot_selection').text("closest");
+    $$('.robot_selection').val("closest");
+    console.log('new task: ' + $$('.task_selection').val());
+    task_type = $$('.task_selection').val()
+    if ($$('.task_selection').val() != 'select') {
+        load_robots()
+    } else {
+        empty_robots()
+    }
+    update_begin_button(state)
+}
+
+function robot_li_a_response() {
+    $$('.robot_selection').text($$(this).text());
+    $$('.robot_selection').val($$(this).text());
+    robot_id = $$('.robot_selection').val()
+    console.log('new robot: ' + $$('.robot_selection').val());
+}
+
+</script>
+

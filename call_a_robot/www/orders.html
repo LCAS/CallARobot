@@ -1,5 +1,5 @@
 $def with (params, text, websocket_url, gmaps_api)
-$var title: CallARobot - Orders
+$var title: RASBerry - Orders
 $var jsfiles: 
 $var params: $:params
 
@@ -40,7 +40,7 @@ $var params: $:params
         $$(id).html("");
         $$(id).removeClass('btn-success btn-danger btn-warning btn-default btn-primary');
         switch(s) {
-            case 'CALLED':
+            case 'car_CALLED':
             case 'INIT':
             default:
                 break;
@@ -57,43 +57,43 @@ $var params: $:params
                 $$(id).html("$:text('Dash Button pressed. Accept!')");
                 $$(id).attr(
                     'onClick',
-                    "send({'method':'set_state', state: 'ACCEPT','user': \""+user+"\"});"
+                    "send({'method':'set_state', state: 'car_ACCEPT','user': \""+user+"\"});"
                 );
                 $$(id).addClass('btn-success');
                 break;
-            case 'CALLED':
+            case 'car_CALLED':
                 $$(id).html("$:text('Accept')");
                 $$(id).attr(
                     'onClick',
-                    "send({'method':'set_state', state: 'ACCEPT','user': \""+user+"\"});"
+                    "send({'method':'set_state', state: 'car_ACCEPT','user': \""+user+"\"});"
                 );
                 $$(id).addClass('btn-success');
                 break;
-            case 'ACCEPT':
+            case 'car_ACCEPT':
                 $$(id).html("$:text('click when arrived')");
                 $$(id).attr(
                     'onClick',
-                    "send({'method':'set_state', state: 'ARRIVED','user': \""+user+"\"});"
+                    "send({'method':'set_state', state: 'car_ARRIVED','user': \""+user+"\"});"
                 );
                 $$(id).addClass('btn-warning');
                 break;
-            case 'ARRIVED':
+            case 'car_ARRIVED':
                 $$(id).html("$:text('Arrived at picker. Click when loaded or wait.')");                
                 $$(id).attr(
                     'onClick',
-                    "send({'method':'set_state', state: 'LOADED','user': \""+user+"\"});"
+                    "send({'method':'set_state', state: 'car_LOADED','user': \""+user+"\"});"
                 );
                 $$(id).addClass('btn-warning');
                 break;
-            case 'LOADED':
+            case 'car_LOADED':
                 $$(id).html("$:text('Loaded. Click and return robot')");
                 $$(id).attr(
                     'onClick',
-                    "send({'method':'set_state', state: 'INIT','user': \""+user+"\"});"
+                    "send({'method':'set_state', state: 'car_INIT','user': \""+user+"\"});"
                 );
                 $$(id).addClass('btn-warning');
                 break;
-            case 'INIT':
+            case 'car_INIT':
             default:
                 $$(id).html("$text('idle')");
                 $$(id).prop('disabled', true);
@@ -203,13 +203,17 @@ $var params: $:params
 </script>
 
 
-<div class="section">
-    <div class="container">
+<div style="padding-top:15px" class="section">
+    <div class="container-fluid">
         <div class="row">
             <div class="col-md-12">
                 <div  class="panel panel-primary">
                     <div class="panel-heading">
-                        <h3 class="panel-title">$text('Orders')</h3>
+                        <form action="#" method="post">
+                            <h3 style="font-size: 200%;" class="panel-title">User States:
+                                <button style="font-size: 40%; float: right;" class="btn btn-warning logout" type="submit">logout</button>
+                            </h3>
+                        </form>
                     </div>
                     
                     <div class="panel-body">
@@ -245,7 +249,7 @@ $var params: $:params
                                                     class="btn btn-sm btn-danger"
                                                     onclick="send({
                                                         'method':'set_state', 
-                                                        'state': 'INIT',
+                                                        'state': 'car_INIT',
                                                         'user': '$u'});">
                                                     reset
                                                 </button>
@@ -264,13 +268,13 @@ $var params: $:params
 </div>
 
 
-<div class="section">
-    <div class="container">
+<div style="padding-top:15px" class="section">
+    <div class="container-fluid">
         <div class="row">
             <div class="col-md-12">
                 <div class="panel panel-primary">
                     <div class="panel-heading">
-                        <h3 class="panel-title">Map</h3>
+                        <h3 style="font-size: 200%;" class="panel-title">Map</h3>
                     </div>
                     <div class="panel-body">
                         <div id="map"></div>
@@ -282,13 +286,13 @@ $var params: $:params
     </div>
 </div>
 
-<div class="section">
-    <div class="container">
+<div style="padding-top:15px" class="section">
+    <div class="container-fluid">
         <div class="row">
             <div class="col-md-12">
                 <div class="panel panel-primary">
                     <div class="panel-heading">
-                        <h3 class="panel-title">Log</h3>
+                        <h3 style="font-size: 200%;" class="panel-title">Log</h3>
                     </div>
                     <div class="panel-body">
                         <a href="/car/log">Download current log</a>
