@@ -221,6 +221,7 @@ $var params: $:params
                             <thead>
                                 <tr>
                                     <th>User</th>
+                                    <th>Row</th>
                                     <th>State</th>
                                     <th>Action</th>
                                     <th></th>
@@ -232,6 +233,22 @@ $var params: $:params
                                 $for u in params['users']:
                                     <tr>
                                         <td class="col-xs-2">$u</td>
+                                        <td class="col-xs-1">
+                                            <div id="dRow" class="btn-group2" role="group">
+                                                <div class="dropdown">
+                                                    <button 
+                                                        class="btn btn-sm btn-primary"
+                                                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        row<span class="caret"></span>
+                                                    </button>
+                                                    <ul class="dropdown-menu" aria-labelledby="dRow">
+                                                        <li><a href="#">1</a></li>
+                                                        <li><a href="#">2</a></li>
+                                                        <li><a href="#">3</a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td class="col-xs-2">
                                             <p id="state-$u"></p>
                                         </td>
