@@ -165,6 +165,11 @@ $var params: $:params
     function _set_state(s) {
     }
 
+    function _new_user(data) {
+        window.location.reload();
+    }
+
+
     function get_states(){
         send({
             'method':'get_states'
@@ -221,6 +226,7 @@ $var params: $:params
                             <thead>
                                 <tr>
                                     <th>User</th>
+                                    <th>Row</th>
                                     <th>State</th>
                                     <th>Action</th>
                                     <th></th>
@@ -232,6 +238,27 @@ $var params: $:params
                                 $for u in params['users']:
                                     <tr>
                                         <td class="col-xs-2">$u</td>
+                                        <td class="col-xs-1">
+                                            <div id="dRow" class="btn-group2" role="group">
+                                                <div class="dropdown">
+                                                    <button 
+                                                        class="btn btn-sm btn-primary" id="row_selector_$u"
+                                                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        row<span class="caret"></span>
+                                                    </button>
+                                                    <ul class="dropdown-menu" aria-labelledby="dRow">
+                                                        $for r in params['rows']:
+                                                            <li><a onclick="send({
+                                                                'method': 'row_select',
+                                                                'user': '$u', 
+                                                                'row': '$r'});
+                                                                $$( '#row_selector_${u}' ).text('$r');
+
+                                                                ">$r</a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td class="col-xs-2">
                                             <p id="state-$u"></p>
                                         </td>
