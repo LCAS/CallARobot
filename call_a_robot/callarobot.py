@@ -141,6 +141,8 @@ class CARState:
             longitude = self.gps[user]['longitude']
         else:
             longitude = -1
+        if row != '' and user in self.gps:
+            self.gps[user]['row'] = row
         # self.trigger_webhook()
         self.log(user, state, log_user, latitude, longitude, row)
 
@@ -199,21 +201,23 @@ class CARState:
                 'value': value
             })
 
-    def send_update_position(self, user, lat, long, acc, ts, row, hdop, vdop ):
+    def send_update_position(self, user, lat, long, acc, ts, hdop, vdop ):
         """ Triggered by clients, to send admin the locations of clients (for /orders)."""
         for m in self.admin_clients:
             info('send pos update  %s' % str(m))
-            m.sendJSON({
+            d = {
                 'method': 'update_position',
                 'user': user,
                 'lat': lat,
                 'long': long,
                 'accu': acc,
                 'timestamp': ts,
-                'row': row,
+                'row': self.gps[user]['row'] if 'row' in self.gps[user] else '',
                 'hdop' : hdop,
                 'vdop' : vdop
-            })
+            }
+            print('update: %s' % d)
+            m.sendJSON(d)
 
 
 car_states = CARState()
@@ -228,7 +232,8 @@ class CARWebServer(webnsock.WebServer):
         self.rows_str = getenv('CAR_ROWS', 'A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6')
         self.rows = self.rows_str.split(' ')
         self.params = {'n_users': len(self.car_states.users),
-                       'users': list(self.car_states.users)}
+                       'users': list(self.car_states.users),
+                       'rows': self.rows}
 
         self.ns = getenv('WEBSOCKET_NAMESPACE', "/rasberry")
         ws_url = self.ns+'/'
@@ -285,10 +290,14 @@ class CARWebServer(webnsock.WebServer):
                 logged_in_users = self_app.car_states.users.keys()
                 if self.user: self_app.car_states.users[self.user] = web.ctx
 
-                self_app.params = {
+                self.rows_str = getenv('CAR_ROWS', 'A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6')
+                self.rows = self.rows_str.split(' ')
+                self.params = {
                     'n_users': len(self_app.car_states.users),
-                    'users': list(self_app.car_states.users)
+                    'users': list(self_app.car_states.users),
+                    'rows': self.rows
                 }
+                print(self.params)
 
                 if self.user is None:
                     #browser has not accessed car before
@@ -371,7 +380,8 @@ class CARWebServer(webnsock.WebServer):
                 print('Orders.INIT : '+self.user)
                 if self.user == 'lcas':
                     print('Orders.INIT.user==lcas : ' + self.user)
-                    return self_app._renderer.orders(self_app.params, self_app.get_text, self_app.websocket_url, self_app.gmaps_api)
+                    print(self.params)
+                    return self_app._renderer.orders(self.params, self_app.get_text, self_app.websocket_url, self_app.gmaps_api)
 
                 print('bak2login: ' + self.user)
                 return self_app._renderer.login(self_app.params, self_app.get_text, self.path, self.ri_type)
@@ -458,7 +468,7 @@ class CARProtocol(webnsock.JsonWSProtocol):
         self.car_states.gps[payload['user']] = {
             'latitude': payload['latitude'],
             'longitude': payload['longitude'],
-            'row': ''
+            'row': self.car_states.gps[payload['user']]['row'] if 'row' in self.car_states.gps[payload['user']] else ''
         }
         self.car_states.log(
             payload['user'],
@@ -474,7 +484,6 @@ class CARProtocol(webnsock.JsonWSProtocol):
                 payload['longitude'],
                 payload['accuracy'],
                 payload['rcv_time'],
-                '', #row
                 payload['HDOP'],
                 payload['VDOP'],
                 )
@@ -485,7 +494,6 @@ class CARProtocol(webnsock.JsonWSProtocol):
                 payload['longitude'],
                 payload['accuracy'],
                 payload['rcv_time'],
-                '', #row
                 '', #hdop
                 '', #vdop
                 )
@@ -507,6 +515,13 @@ class CARProtocol(webnsock.JsonWSProtocol):
     def on_call(self, payload):
         info('user %s called a robot' % payload['user'])
         self.update_state(payload['user'], 'CALLED')
+
+    def on_row_select(self, payload):
+        info('user %s row set to %s' % (payload['user'], payload['row']))
+        user = payload['user']
+        if user not in self.car_states.states:
+            self.car_states.get_state(user)
+        self.car_states.gps[user]['row'] = payload['row']
 
     def on_cancel(self, payload):
         info('user %s cancelled a robot' % payload['user'])

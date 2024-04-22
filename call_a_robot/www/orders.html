@@ -165,6 +165,11 @@ $var params: $:params
     function _set_state(s) {
     }
 
+    function _new_user(data) {
+        window.location.reload();
+    }
+
+
     function get_states(){
         send({
             'method':'get_states'
@@ -237,14 +242,19 @@ $var params: $:params
                                             <div id="dRow" class="btn-group2" role="group">
                                                 <div class="dropdown">
                                                     <button 
-                                                        class="btn btn-sm btn-primary"
+                                                        class="btn btn-sm btn-primary" id="row_selector_$u"
                                                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                         row<span class="caret"></span>
                                                     </button>
                                                     <ul class="dropdown-menu" aria-labelledby="dRow">
-                                                        <li><a href="#">1</a></li>
-                                                        <li><a href="#">2</a></li>
-                                                        <li><a href="#">3</a></li>
+                                                        $for r in params['rows']:
+                                                            <li><a onclick="send({
+                                                                'method': 'row_select',
+                                                                'user': '$u', 
+                                                                'row': '$r'});
+                                                                $$( '#row_selector_${u}' ).text('$r');
+
+                                                                ">$r</a></li>
                                                     </ul>
                                                 </div>
                                             </div>
