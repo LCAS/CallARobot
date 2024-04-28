@@ -1,13 +1,20 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-dockerfile
 {
-	"name": "Existing Dockerfile",
-	"build": {
-		// Sets the run context to one level up instead of the .devcontainer folder.
-		"context": "..",
-		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
-		"dockerfile": "../Dockerfile"
-	},
+	"name": "Existing Docker Compose file",
+	
+	// Use docker-compose file for development
+	"dockerComposeFile": ["./docker-compose.yaml", "./docker-compose.dev.yaml"],
+	"service": "car",
+	"workspaceFolder": "/workspace",
+
+
+	// "build": {
+	// 	// Sets the run context to one level up instead of the .devcontainer folder.
+	// 	"context": "..",
+	// 	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
+	// 	"dockerfile": "../Dockerfile"
+	// },
 	"features": {
 		//"ghcr.io/devcontainers/features/desktop-lite:1": {}
 	},
@@ -26,6 +33,13 @@
 
 	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
 	"remoteUser": "devcontainer",
-	"updateRemoteUserUID": true
+	"updateRemoteUserUID": true,
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python"
+			]
+		}
+	}
 
 }
