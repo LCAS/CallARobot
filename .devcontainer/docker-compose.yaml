@@ -6,7 +6,7 @@ services:
     ports:
       - 1883
     volumes:
-      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
 
   car:
     build: 
@@ -36,7 +36,7 @@ services:
     command: ["python", "MtoWENV.py"]
     env_file: ./env
     environment:
-      WEBSOCKET_URL: ws://car:8128/rasberry/ws
+      WEBSOCKET_URL: ws://car:8128
       PYTHONUNBUFFERED: 1
     links: 
       - car
@@ -53,7 +53,7 @@ services:
     command: ["python", "WtoMENV.py"]
     env_file: ./env
     environment:
-      WEBSOCKET_URL: ws://car:8128/rasberry/ws
+      WEBSOCKET_URL: ws://car:8128
       PYTHONUNBUFFERED: 1
     links: 
       - car
