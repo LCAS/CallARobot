@@ -1,0 +1,76 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ master ]
+    tags:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build-car-forwarders:
+    name: Build Car Forwarders
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+
+    - name: What
+      run: echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+    - name: Docker Login LCAS
+      # don't attempt to login for PRs
+      if: ${{ github.event_name != 'pull_request' }} 
+      uses: docker/login-action@v2
+      with:
+        registry: lcas.lincoln.ac.uk
+        username: ${{ secrets.LCAS_REGISTRY_PUSHER }}
+        password: ${{ secrets.LCAS_REGISTRY_TOKEN }}
+    - name: Build Car Forwarders
+      uses: docker/build-push-action@v5
+      with:
+        context: ./CAR-Forwarders
+        file: Dockerfile
+        platforms: linux/amd64
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: |
+          lcas.lincoln.ac.uk/lcas/car-forwarders:${{ env.BRANCH }}
+          lcas.lincoln.ac.uk/lcas/car-forwarders:latest
+        build-args: |
+            BRANCH=${{ env.BRANCH }}
+
+  build-car:
+    name: Build Car 
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+    - name: What
+      run: echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+    - name: Docker Login LCAS
+      # don't attempt to login for PRs
+      if: ${{ github.event_name != 'pull_request' }} 
+      uses: docker/login-action@v2
+      with:
+        registry: lcas.lincoln.ac.uk
+        username: ${{ secrets.LCAS_REGISTRY_PUSHER }}
+        password: ${{ secrets.LCAS_REGISTRY_TOKEN }}
+    - name: Build Car Forwarders
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: Dockerfile
+        platforms: linux/amd64
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: |
+          lcas.lincoln.ac.uk/lcas/car:${{ env.BRANCH }}
+          lcas.lincoln.ac.uk/lcas/car:latest
+        build-args: |
+            BRANCH=${{ env.BRANCH }}
