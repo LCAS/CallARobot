@@ -1,0 +1,71 @@
+
+version: '3'
+services:
+  mosquitto:
+    image: eclipse-mosquitto:1.6
+    ports:
+      - 1883
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  car:
+    build: 
+      dockerfile: ./Dockerfile
+      context: ..
+    image: lcas.lincoln.ac.uk/lcas/car:latest
+    ports:
+      - 8127
+      - 8128
+    env_file: ./env
+    environment:
+      # We are tkaking the Google Maps API key form a .env file (or set it before docker-compose up)
+      PYTHONUNBUFFERED: 1
+      #GMAPS_API: ${GMAPS_API:-define_your_API_key_in_a_dot_env_file}
+      #CAR_ROWS: ${CAR_ROWS:-1 2 3 4 5 6 7 8 9 10 11 12}
+      #WEBSOCKET_URL: ${WEBSOCKET_URL:-wss://lcas.lincoln.ac.uk/rasberry/ws}
+      CAR_LOG_DIR: "/tmp"
+
+  car_forwards_MtoW:
+    depends_on:
+      - car
+      - mosquitto
+    image: lcas.lincoln.ac.uk/lcas/car-forwarders:latest
+    build: 
+      context: ../CAR-Forwarders
+      dockerfile: Dockerfile
+    command: ["python", "MtoWENV.py"]
+    env_file: ./env
+    environment:
+      WEBSOCKET_URL: ws://car:8128
+      PYTHONUNBUFFERED: 1
+    links: 
+      - car
+      - mosquitto
+
+  car_forwards_WtoM:
+    depends_on:
+      - car
+      - mosquitto
+    image: lcas.lincoln.ac.uk/lcas/car-forwarders:latest
+    build: 
+      context: ../CAR-Forwarders
+      dockerfile: Dockerfile
+    command: ["python", "WtoMENV.py"]
+    env_file: ./env
+    environment:
+      WEBSOCKET_URL: ws://car:8128
+      PYTHONUNBUFFERED: 1
+    links: 
+      - car
+      - mosquitto
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - 8827:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - car
+    links:
+      - car

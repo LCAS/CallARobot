@@ -357,7 +357,7 @@ class CARWebServer(webnsock.WebServer):
                         web.setcookie(r, 'null')
 
                 #send them the constructed page
-                return self_app._renderer.sendarobot(self_app.params, self_app.get_text, self.user, self_app.websocket_url)
+                return self_app._renderer.sendarobot(self_app.params, self_app.get_text, self.user, self_app.websocket_url.replace('@HOST@', web.ctx.host ))
 
 
         class CallARobot(RobotInteractions):
@@ -369,7 +369,7 @@ class CARWebServer(webnsock.WebServer):
                 row = ''
                 if 'row' in self_app.car_states.gps[self.user]:
                     row = self_app.car_states.gps[self.user]['row']
-                return self_app._renderer.callarobot(self_app.params, self_app.get_text, self.user, self_app.rows, self_app.websocket_url, row)
+                return self_app._renderer.callarobot(self_app.params, self_app.get_text, self.user, self_app.rows, self_app.websocket_url.replace('@HOST@', web.ctx.host), row)
 
         class Orders(RobotInteractions):
             ri_type = 'Orders'
@@ -381,7 +381,7 @@ class CARWebServer(webnsock.WebServer):
                 if self.user == 'lcas':
                     print('Orders.INIT.user==lcas : ' + self.user)
                     print(self.params)
-                    return self_app._renderer.orders(self.params, self_app.get_text, self_app.websocket_url, self_app.gmaps_api)
+                    return self_app._renderer.orders(self.params, self_app.get_text, self_app.websocket_url.replace('@HOST@', web.ctx.host), self_app.gmaps_api)
 
                 print('bak2login: ' + self.user)
                 return self_app._renderer.login(self_app.params, self_app.get_text, self.path, self.ri_type)
