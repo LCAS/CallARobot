@@ -34,7 +34,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: ./CAR-Forwarders
-        file: ./CAR-Forwarder/Dockerfile
+        file: ./CAR-Forwarders/Dockerfile
         platforms: linux/amd64
         push: ${{ github.event_name != 'pull_request' }}
         tags: |
