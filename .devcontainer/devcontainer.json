@@ -22,8 +22,18 @@
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	"forwardPorts": ["nginx:80", "mosquitto:1883"],
+	"portsAttributes": {
+			"6080": {
+					"label": "virtual desktop"
+			},
+			"nginx:80": {
+					"label": "CAR server"
+			},
+			"mosquitto:1883": {
+					"label": "MQTT Port"
+			}
+	},
 
 	// Uncomment the next line to run commands after the container is created.
 	// "postCreateCommand": "cat /etc/os-release",
