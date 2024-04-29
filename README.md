@@ -1,6 +1,24 @@
 # CallARobot
 A simple web interface to call a robot
 
+## Use in Docker
+
+1. clone this repository: `git clone https://github.com/LCAS/CallARobot.git`
+1. go into the `.devcontainer` directory: `cd .devcontainer`
+1. run `docker compose up -d`
+1. find the port to access the car server: `docker compose port nginx 80`, it should show something like `0.0.0.0:32881`
+1. open you browser to go to http://localhost:PORTNUMBER, in the above case it would be http://localhost:32881
+
+
+## Use Devcontainer
+
+Even easier may be to use the devcontainer in VSCode:
+
+1. In VSCode open the repository
+1. It should prompt you to open as devcontainer
+1. Once start, under ports, the forwarded port for the CAR server is found
+1. In the VSCode terminal, run `python callarobot.py` and you should be able to access it under the "CAR server" forwarded port
+
 ## Installation
 
 run `sudo pip install -r requirements.txt`
